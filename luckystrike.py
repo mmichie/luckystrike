@@ -11,8 +11,7 @@ from twisted.conch import manhole, manhole_ssh
 
 from multiprocessing import Queue
 
-ROOM = 'bot'
-USERS = dict(mmichie='pass1', admin='admin')
+users = dict(mmichie='pass1', admin='admin')
 
 q = Queue()
 irc_users = []
@@ -51,7 +50,39 @@ class LuckyStrikeIRCUser(service.IRCUser):
         self.hostname = self.realm.name
         log.msg('User connected from %s' % self.hostname)
         irc_users.append(self)
-        log.msg('!!%s: %s!!' % (id(irc_users), irc_users))
+
+    def irc_JOIN(self, prefix, params):
+        """Join message
+
+        Parameters: ( <channel> *( "," <channel> ) [ <key> *( "," <key> ) ] )
+        """
+        try:
+            groupName = params[0].decode(self.encoding)
+        except UnicodeDecodeError:
+            self.sendMessage(
+                irc.ERR_NOSUCHCHANNEL, params[0],
+                ":No such channel (could not decode your unicode!)")
+            return
+
+        if groupName.startswith('#'):
+            groupName = groupName[1:]
+
+        def cbGroup(group):
+            def cbJoin(ign):
+                self.userJoined(group, self)
+                self.names(
+                    self.name,
+                    '#' + group.name,
+                    [user.name for user in group.iterusers()])
+                self._sendTopic(group)
+            return self.avatar.join(group).addCallback(cbJoin)
+
+        def ebGroup(err):
+            self.sendMessage(
+                irc.ERR_NOSUCHCHANNEL, '#' + groupName,
+                ":No such channel.")
+
+        self.realm.getGroup(groupName).addCallbacks(cbGroup, ebGroup)
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
@@ -100,25 +131,26 @@ def getManholeFactory(namespace, **passwords):
     return f
 
 if __name__ == '__main__':
-    global twisted_reactor
     log.startLogging(sys.stdout)
 
     try:
         config_file = open('config.json')
         config = dict(json.loads(config_file.read()))
-        # Initialize the Cred authentication system used by the IRC server.
-        realm = service.InMemoryWordsRealm('ProxyRealm')
-        realm.addGroup(service.Group(ROOM))
-        user_db = checkers.InMemoryUsernamePasswordDatabaseDontUse(**USERS)
-        irc_portal = portal.Portal(realm, [user_db])
-
         # connect to Campfire
         campfire = pyfire.Campfire(config['domain'], config['e-mail'], config['password'], ssl=True)
         connection = campfire.get_connection()
         twisted_reactor = connection.get_twisted_reactor()
 
+        # Initialize the Cred authentication system used by the IRC server.
+        irc_realm = service.InMemoryWordsRealm('LuckyStrike')
+        for room in campfire.get_rooms(sort=False):
+            irc_realm.addGroup(service.Group(campNameToString(room['name'])))
+
+        user_db = checkers.InMemoryUsernamePasswordDatabaseDontUse(**users)
+        irc_portal = portal.Portal(irc_realm, [user_db])
+
         # Start IRC and Manhole
-        twisted_reactor.listenTCP(6667, LuckyStrikeIRCFactory(realm, irc_portal))
+        twisted_reactor.listenTCP(6667, LuckyStrikeIRCFactory(irc_realm, irc_portal))
         twisted_reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
 
         l = task.LoopingCall(pollQueue)
