@@ -20,16 +20,20 @@ def pollQueue():
     if q.empty():
         return
     else:
-        (user, room, message) = q.get(block=False)
+        try:
+            (user, room, message) = q.get(block=False)
+        except:
+            log.err()
         processMessage(user, room, message)
 
 def processMessage(user, room, message):
+    global irc_users
 
     try:
         log.msg('Writing messages')
-        if len(irc_users) > 0 or len(message) == 0:
+        if len(irc_users) > 0 or len(message) > 0:
             irc = irc_users[0]
-            irc.privmsg(user, '#bot', message)
+            irc.privmsg(user, '#%s' % room, message)
         else:
             log.msg('No users on IRC server to write, or blank message!')
     except:
@@ -97,7 +101,7 @@ def incoming(message):
     if message.user:
         user = campNameToString(message.user.name)
     if message.room:
-        room = campNameToString(str(message.room))
+        room = campNameToString(str(message.room.name))
 
     if message.is_joining():
         msg = '--> %s ENTERS THE ROOM: %s' % (user, room)
@@ -161,8 +165,15 @@ if __name__ == '__main__':
         room.join()
         stream = pyfire.stream.Stream(room, error_callback=error)
 
+        # Join Campfire room
+        room2 = campfire.get_room_by_name('SRE')
+        room2.join()
+        stream2 = pyfire.stream.Stream(room2, error_callback=error)
+
         # Start Campfire stream
         stream.attach(incoming).start()
+        stream2.attach(incoming).start()
+
     except:
         log.err()
         #stream.stop().join()
