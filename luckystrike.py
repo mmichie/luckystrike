@@ -1,43 +1,19 @@
-import sys
 import json
-import pyfire
 import re
+import sys
 
-from twisted.internet import task
+import pinder
+
+from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
+from twisted.internet import reactor
+from twisted.internet import task
 from twisted.python import log
 from twisted.words import service
-from twisted.conch import manhole, manhole_ssh
-
-from multiprocessing import Queue
 
 users = dict(mmichie='pass1', admin='admin')
-
-q = Queue()
+rooms = {}
 irc_users = []
-
-def pollQueue():
-    if q.empty():
-        return
-    else:
-        try:
-            (user, room, message) = q.get(block=False)
-        except:
-            log.err()
-        processMessage(user, room, message)
-
-def processMessage(user, room, message):
-    global irc_users
-
-    try:
-        if len(irc_users) > 0 or len(message) > 0:
-            irc = irc_users[0]
-            irc.privmsg(user, '#%s' % room, message)
-            log.msg('Writing to %s: %s' % (room, message))
-        else:
-            log.err('No users on IRC server to write, or blank message!')
-    except:
-        log.err()
 
 class LuckyStrikeIRCUser(service.IRCUser):
 
@@ -60,12 +36,11 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('Joined channel: %s, %s' % (prefix, params))
        
         # Join Campfire room
-        room = campfire.get_room_by_name('SRE')
+        room_info = lookupChannel(params[0].strip('#'))
+        log.msg('Starting to stream: %s' % room_info['name'])
+        room = campfire.find_room_by_name(room_info['name'])
         room.join()
-        stream = pyfire.stream.Stream(room, error_callback=error)
-
-        # Start Campfire stream
-        stream.attach(incoming).start()
+        room.listen(incoming, error, start_reactor=False)
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
@@ -73,86 +48,74 @@ class LuckyStrikeIRCFactory(service.IRCFactory):
 def campNameToString(name):
     return re.sub('\s+', '_', name).lower()
 
+def lookupChannel(channel):
+    for room_id, room in rooms.iteritems():
+        if room['channel'] == channel:
+            return room
+
+def write_message(message, user, channel):
+    global irc_users
+
+    try:
+        if len(irc_users) > 0:
+            irc = irc_users[0]
+            irc.privmsg(user, '#%s' % channel, message)
+            log.msg('Writing to %s: %s' % (channel, message))
+        else:
+            log.err('No users on IRC server to write')
+    except:
+        log.err()
+
 def incoming(message):
-    user = ''
-    msg = ''
-    room = None
-    if message.user:
-        user = campNameToString(message.user.name)
-    if message.room:
-        room = campNameToString(str(message.room.name))
+    log.msg(message)
 
-    if message.is_joining():
-        msg = '--> %s ENTERS THE ROOM: %s' % (user, room)
-    elif message.is_leaving():
-        msg = '<-- %s LEFT THE ROOM: %s ' % (user, room)
-    elif message.is_tweet():
-        msg = '[%s] %s TWEETED "%s" - %s' % (user, message.tweet['user'],
-            message.tweet['tweet'], message.tweet['url'])
-    elif message.is_text():
-        msg = message.body
-    elif message.is_upload():
-        msg = '-- %s UPLOADED FILE %s: %s' % (user, message.upload['name'],
-            message.upload['url'])
-    elif message.is_topic_change():
-        msg = '-- %s CHANGED TOPIC TO "%s"' % (user, message.body)
-    else:
-        msg = 'Unknown: %s, %s' % (user, message.body)
-
-    q.put((user, room, msg))
+    user = campfire.user(message['user_id'])['user']
+    if message['type'] == 'TextMessage':
+        write_message(message['body'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
 
 def error(e):
-    print('Stream STOPPED due to ERROR: %s' % e)
-    print('Press ENTER to continue')
+    log.err(e)
 
 def getManholeFactory(namespace, **passwords):
     realm = manhole_ssh.TerminalRealm()
-    def getManhole(_): return manhole.Manhole(namespace)
+
+    def getManhole(_):
+        return manhole.Manhole(namespace)
+
     realm.chainedProtocolFactory.protocolFactory = getManhole
     p = portal.Portal(realm)
-    p.registerChecker(
-        checkers.InMemoryUsernamePasswordDatabaseDontUse(**passwords))
+    p.registerChecker(checkers.InMemoryUsernamePasswordDatabaseDontUse(**passwords))
     f = manhole_ssh.ConchFactory(p)
+
     return f
 
 if __name__ == '__main__':
     global campfire
-    global twisted_reactor
 
     log.startLogging(sys.stdout)
 
     try:
         config_file = open('config.json')
         config = dict(json.loads(config_file.read()))
+
         # connect to Campfire
-        campfire = pyfire.Campfire(config['domain'], config['e-mail'], config['password'], ssl=True)
-        connection = campfire.get_connection()
-        twisted_reactor = connection.get_twisted_reactor()
+        campfire = pinder.Campfire(config['domain'], config['api_key']) 
 
         # Initialize the Cred authentication system used by the IRC server.
         irc_realm = service.InMemoryWordsRealm('LuckyStrike')
-        for room in campfire.get_rooms(sort=False):
-            irc_realm.addGroup(service.Group(campNameToString(room['name'])))
+        for room in campfire.rooms():
+            rooms[room['id']] = room
+            rooms[room['id']]['channel'] = campNameToString(room['name'])
+            log.msg('Adding %s to IRC as %s' % (room['name'], rooms[room['id']]['channel']))
+            irc_realm.addGroup(service.Group(rooms[room['id']]['channel']))
 
         user_db = checkers.InMemoryUsernamePasswordDatabaseDontUse(**users)
         irc_portal = portal.Portal(irc_realm, [user_db])
 
         # Start IRC and Manhole
-        twisted_reactor.listenTCP(6667, LuckyStrikeIRCFactory(irc_realm, irc_portal))
-        twisted_reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
+        reactor.listenTCP(6667, LuckyStrikeIRCFactory(irc_realm, irc_portal))
+        reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
 
-        l = task.LoopingCall(pollQueue)
-        l.start(0.2)
-
-        # Join Campfire room
-        room = campfire.get_room_by_name('BotTest')
-        room.join()
-        stream = pyfire.stream.Stream(room, error_callback=error)
-
-        # Start Campfire stream
-        stream.attach(incoming).start()
-
+        reactor.run()
     except:
         log.err()
-        #stream.stop().join()
-        #room.leave()
