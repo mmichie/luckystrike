@@ -30,12 +30,12 @@ def processMessage(user, room, message):
     global irc_users
 
     try:
-        log.msg('Writing messages')
         if len(irc_users) > 0 or len(message) > 0:
             irc = irc_users[0]
             irc.privmsg(user, '#%s' % room, message)
+            log.msg('Writing to %s: %s' % (room, message))
         else:
-            log.msg('No users on IRC server to write, or blank message!')
+            log.err('No users on IRC server to write, or blank message!')
     except:
         log.err()
 
@@ -56,37 +56,16 @@ class LuckyStrikeIRCUser(service.IRCUser):
         irc_users.append(self)
 
     def irc_JOIN(self, prefix, params):
-        """Join message
+        service.IRCUser.irc_JOIN(self, prefix, params)
+        log.msg('Joined channel: %s, %s' % (prefix, params))
+       
+        # Join Campfire room
+        room = campfire.get_room_by_name('SRE')
+        room.join()
+        stream = pyfire.stream.Stream(room, error_callback=error)
 
-        Parameters: ( <channel> *( "," <channel> ) [ <key> *( "," <key> ) ] )
-        """
-        try:
-            groupName = params[0].decode(self.encoding)
-        except UnicodeDecodeError:
-            self.sendMessage(
-                irc.ERR_NOSUCHCHANNEL, params[0],
-                ":No such channel (could not decode your unicode!)")
-            return
-
-        if groupName.startswith('#'):
-            groupName = groupName[1:]
-
-        def cbGroup(group):
-            def cbJoin(ign):
-                self.userJoined(group, self)
-                self.names(
-                    self.name,
-                    '#' + group.name,
-                    [user.name for user in group.iterusers()])
-                self._sendTopic(group)
-            return self.avatar.join(group).addCallback(cbJoin)
-
-        def ebGroup(err):
-            self.sendMessage(
-                irc.ERR_NOSUCHCHANNEL, '#' + groupName,
-                ":No such channel.")
-
-        self.realm.getGroup(groupName).addCallbacks(cbGroup, ebGroup)
+        # Start Campfire stream
+        stream.attach(incoming).start()
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
@@ -117,6 +96,8 @@ def incoming(message):
             message.upload['url'])
     elif message.is_topic_change():
         msg = '-- %s CHANGED TOPIC TO "%s"' % (user, message.body)
+    else:
+        msg = 'Unknown: %s, %s' % (user, message.body)
 
     q.put((user, room, msg))
 
@@ -135,6 +116,9 @@ def getManholeFactory(namespace, **passwords):
     return f
 
 if __name__ == '__main__':
+    global campfire
+    global twisted_reactor
+
     log.startLogging(sys.stdout)
 
     try:
@@ -158,21 +142,15 @@ if __name__ == '__main__':
         twisted_reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
 
         l = task.LoopingCall(pollQueue)
-        l.start(0.1)
+        l.start(0.2)
 
         # Join Campfire room
         room = campfire.get_room_by_name('BotTest')
         room.join()
         stream = pyfire.stream.Stream(room, error_callback=error)
 
-        # Join Campfire room
-        room2 = campfire.get_room_by_name('SRE')
-        room2.join()
-        stream2 = pyfire.stream.Stream(room2, error_callback=error)
-
         # Start Campfire stream
         stream.attach(incoming).start()
-        stream2.attach(incoming).start()
 
     except:
         log.err()
