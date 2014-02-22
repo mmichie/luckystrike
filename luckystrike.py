@@ -69,9 +69,17 @@ def write_message(message, user, channel):
 def incoming(message):
     log.msg(message)
 
-    user = campfire.user(message['user_id'])['user']
+    if message['user_id'] is not None:
+        user = campfire.user(message['user_id'])['user']
+    else:
+        user = None
+
     if message['type'] == 'TextMessage':
         write_message(message['body'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
+    if message['type'] == 'KickMessage':
+        write_message('%s has left' % user['name'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
+    if message['type'] == 'EnterMessage':
+        write_message('%s has joined' % user['name'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
 
 def error(e):
     log.err(e)
