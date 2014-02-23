@@ -13,7 +13,7 @@ from twisted.words import service
 
 users = dict(mmichie='pass1', admin='admin')
 rooms = {}
-irc_users = []
+irc_users = {}
 
 class LuckyStrikeIRCUser(service.IRCUser):
 
@@ -25,22 +25,40 @@ class LuckyStrikeIRCUser(service.IRCUser):
     def connectionMade(self):
         global irc_users
 
-        self.irc_PRIVMSG = self.irc_NICKSERV_PRIVMSG
-        self.realm = self.factory.realm
-        self.hostname = self.realm.name
+        service.IRCUser.connectionMade(self)
         log.msg('User connected from %s' % self.hostname)
-        irc_users.append(self)
+
+    def _cbLogin(self, (iface, avatar, logout)):
+        service.IRCUser._cbLogin(self, (iface, avatar, logout))
+        irc_users[self.avatar.name] = self
+        log.msg('User authenticated as: %s' % self.avatar.name)
+
+    def connectionLost(self, reason):
+        log.msg('User disconnected')
+        del irc_users[self.avatar.name]
+        service.IRCUser.connectionLost(self, reason)
 
     def irc_JOIN(self, prefix, params):
         service.IRCUser.irc_JOIN(self, prefix, params)
         log.msg('Joined channel: %s, %s' % (prefix, params))
-       
+
         # Join Campfire room
         room_info = lookupChannel(params[0].strip('#'))
         log.msg('Starting to stream: %s' % room_info['name'])
         room = campfire.find_room_by_name(room_info['name'])
         room.join()
         room.listen(incoming, error, start_reactor=False)
+
+    def irc_PART(self, prefix, params):
+        service.IRCUser.irc_PART(self, prefix, params)
+        log.msg('Left channel: %s, %s' % (prefix, params))
+
+        # Leave Campfire room
+        room_info = lookupChannel(params[0].strip('#'))
+        log.msg('Stopping stream to : %s' % room_info['name'])
+        room = campfire.find_room_by_name(room_info['name'])
+        room.leave()
+        #room.listen(incoming, error, start_reactor=False)
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
@@ -58,7 +76,7 @@ def write_message(message, user, channel):
 
     try:
         if len(irc_users) > 0:
-            irc = irc_users[0]
+            irc = irc_users.values()[0]
             irc.privmsg(user, '#%s' % channel, message)
             log.msg('Writing to %s: %s' % (channel, message))
         else:
