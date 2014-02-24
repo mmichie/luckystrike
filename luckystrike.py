@@ -46,7 +46,10 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('Starting to stream: %s' % room_info['name'])
         room = campfire.find_room_by_name(room_info['name'])
         room.join()
-        room.listen(incoming, error, start_reactor=False)
+        
+        if 'streaming' not in rooms[room.id]:
+            rooms[room.id]['streaming'] = True
+            room.listen(incoming, error, start_reactor=False)
 
     def privmsg(self, sender, recip, message):
         service.IRCUser.privmsg(self, sender, recip, message)
@@ -61,7 +64,7 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('Stopping stream to : %s' % room_info['name'])
         room = campfire.find_room_by_name(room_info['name'])
         room.leave()
-        #room.listen(incoming, error, start_reactor=False)
+        #rooms[room.id]['streaming'] = False
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
@@ -75,16 +78,9 @@ def lookupChannel(channel):
             return room
 
 def write_message(message, user, channel):
-
-    try:
-        if len(irc_users) > 0:
-            irc = irc_users.values()[0]
-            irc.privmsg(user, '#%s' % channel, message)
-            log.msg('Writing to %s: %s' % (channel, message))
-        else:
-            log.err('No users on IRC server to write')
-    except:
-        log.err()
+    for user_name, client in irc_users.iteritems():
+        client.privmsg(user, '#%s' % channel, message)
+        log.msg('Writing to %s on %s: %s' % (user_name, channel, message))
 
 def incoming(message):
     log.msg(message)
