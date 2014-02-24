@@ -10,10 +10,10 @@ from twisted.internet import reactor
 from twisted.internet import task
 from twisted.python import log
 from twisted.words import service
+from twisted.words.protocols import irc
 
 users = dict(mmichie='pass1', admin='admin')
 rooms = {}
-irc_users = {}
 
 class LuckyStrikeIRCUser(service.IRCUser):
 
@@ -23,19 +23,16 @@ class LuckyStrikeIRCUser(service.IRCUser):
     Note: consider overriding irc_NICK to prevent nickserv password prompt
     """
     def connectionMade(self):
-        global irc_users
 
         service.IRCUser.connectionMade(self)
         log.msg('User connected from %s' % self.hostname)
 
     def _cbLogin(self, (iface, avatar, logout)):
         service.IRCUser._cbLogin(self, (iface, avatar, logout))
-        irc_users[self.avatar.name] = self
         log.msg('User authenticated as: %s' % self.avatar.name)
 
     def connectionLost(self, reason):
         log.msg('User disconnected')
-        del irc_users[self.avatar.name]
         service.IRCUser.connectionLost(self, reason)
 
     def irc_JOIN(self, prefix, params):
@@ -72,11 +69,10 @@ def lookupChannel(channel):
             return room
 
 def write_message(message, user, channel):
-    global irc_users
 
     try:
-        if len(irc_users) > 0:
-            irc = irc_users.values()[0]
+        if len(irc_realm.users) > 0:
+            irc = irc_realm.users.values()[0]
             irc.privmsg(user, '#%s' % channel, message)
             log.msg('Writing to %s: %s' % (channel, message))
         else:
