@@ -14,6 +14,7 @@ from twisted.words.protocols import irc
 
 users = dict(mmichie='pass1', admin='admin')
 rooms = {}
+irc_users = {}
 
 class LuckyStrikeIRCUser(service.IRCUser):
 
@@ -23,17 +24,18 @@ class LuckyStrikeIRCUser(service.IRCUser):
     Note: consider overriding irc_NICK to prevent nickserv password prompt
     """
     def connectionMade(self):
-
         service.IRCUser.connectionMade(self)
         log.msg('User connected from %s' % self.hostname)
 
     def _cbLogin(self, (iface, avatar, logout)):
         service.IRCUser._cbLogin(self, (iface, avatar, logout))
         log.msg('User authenticated as: %s' % self.avatar.name)
+        irc_users[self.avatar.name] = self
 
     def connectionLost(self, reason):
         log.msg('User disconnected')
         service.IRCUser.connectionLost(self, reason)
+        del irc_users[self.avatar.name]
 
     def irc_JOIN(self, prefix, params):
         service.IRCUser.irc_JOIN(self, prefix, params)
@@ -45,6 +47,10 @@ class LuckyStrikeIRCUser(service.IRCUser):
         room = campfire.find_room_by_name(room_info['name'])
         room.join()
         room.listen(incoming, error, start_reactor=False)
+
+    def privmsg(self, sender, recip, message):
+        service.IRCUser.privmsg(self, sender, recip, message)
+        log.msg('Got sent a privmsg: %s, %s, %s' % (sender, recip, message))
 
     def irc_PART(self, prefix, params):
         service.IRCUser.irc_PART(self, prefix, params)
@@ -71,8 +77,8 @@ def lookupChannel(channel):
 def write_message(message, user, channel):
 
     try:
-        if len(irc_realm.users) > 0:
-            irc = irc_realm.users.values()[0]
+        if len(irc_users) > 0:
+            irc = irc_users.values()[0]
             irc.privmsg(user, '#%s' % channel, message)
             log.msg('Writing to %s: %s' % (channel, message))
         else:
