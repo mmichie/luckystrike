@@ -1,20 +1,29 @@
+import base64
 import json
 import re
 import sys
 
 import pinder
+from pinder.campfire import USER_AGENT
+from pinder import streaming
 
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
 from twisted.internet import reactor
 from twisted.internet import task
 from twisted.python import log
+from twisted.web.client import Agent
+from twisted.web.http_headers import Headers
 from twisted.words import service
 from twisted.words.protocols import irc
 
-users = dict(mmichie='pass1', admin='admin')
+users = dict(mmichie='pass1', admin='admin', test1='test1')
 rooms = {}
 irc_users = {}
+
+def _get_response(response, callback, errback):
+    response.deliverBody(streaming.StreamingParser(callback, errback))
+    return Deferred()
 
 class LuckyStrikeIRCUser(service.IRCUser):
 
@@ -34,8 +43,8 @@ class LuckyStrikeIRCUser(service.IRCUser):
 
     def connectionLost(self, reason):
         log.msg('User disconnected')
-        service.IRCUser.connectionLost(self, reason)
         del irc_users[self.avatar.name]
+        service.IRCUser.connectionLost(self, reason)
 
     def irc_JOIN(self, prefix, params):
         service.IRCUser.irc_JOIN(self, prefix, params)
@@ -46,10 +55,29 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('Starting to stream: %s' % room_info['name'])
         room = campfire.find_room_by_name(room_info['name'])
         room.join()
-        
+
         if 'streaming' not in rooms[room.id]:
-            rooms[room.id]['streaming'] = True
-            room.listen(incoming, error, start_reactor=False)
+            username, password = room._connector.get_credentials()
+            rooms[room.id]['streaming'] = self.listen(username, password, room.id, incoming, error)
+
+    def listen(self, username, password, room_id, callback, errback):
+
+        auth_header = 'Basic ' + base64.b64encode("%s:%s" % (username, password)).strip()
+        url = 'https://streaming.campfirenow.com/room/%s/live.json' % room_id
+        headers = Headers({
+            'User-Agent': [USER_AGENT],
+            'Authorization': [auth_header]})
+
+        # issue the request
+        agent = Agent(reactor)
+        d = agent.request('GET', url, headers, None)
+        d.addCallback(_get_response, callback, errback)
+
+        return d
+
+    def receive(self, sender, recipient, message):
+        log.msg('Receive: %s' % message)
+        service.IRCUser.receive(self, sender, recipient, message)
 
     def privmsg(self, sender, recip, message):
         service.IRCUser.privmsg(self, sender, recip, message)
@@ -64,7 +92,12 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('Stopping stream to : %s' % room_info['name'])
         room = campfire.find_room_by_name(room_info['name'])
         room.leave()
-        #rooms[room.id]['streaming'] = False
+        try:
+            print type(rooms[room.id]['streaming'])
+            print dir(rooms[room.id]['streaming'])
+            rooms[room.id]['streaming'].cancel()
+        except:
+            log.err()
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
