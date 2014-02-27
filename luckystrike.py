@@ -11,6 +11,7 @@ from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
 from twisted.internet import reactor
 from twisted.internet import task
+from twisted.internet.defer import Deferred
 from twisted.python import log
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
@@ -46,6 +47,22 @@ class LuckyStrikeIRCUser(service.IRCUser):
         del irc_users[self.avatar.name]
         service.IRCUser.connectionLost(self, reason)
 
+    def names(self, user, channel, names):
+        log.msg('names called: %s, %s, %s' % (user, channel, names))
+
+        room_info = lookupChannel(channel.strip('#'))
+        room = campfire.find_room_by_name(room_info['name'])
+
+        names = []
+        users = room._get()['room']['users']
+        for camp_user in users:
+            names.append(campNameToString(camp_user['name']))
+
+        service.IRCUser.names(self, user, channel, names)
+
+    def who(self, user, channel, memberInfo):
+        log.msg('who called: %s, %s, %s' % (user, channel, memberInfo))
+
     def irc_JOIN(self, prefix, params):
         service.IRCUser.irc_JOIN(self, prefix, params)
         log.msg('Joined channel: %s, %s' % (prefix, params))
@@ -55,13 +72,13 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('Starting to stream: %s' % room_info['name'])
         room = campfire.find_room_by_name(room_info['name'])
         room.join()
+        rooms[room.id]['streaming'] = True
 
-        if 'streaming' not in rooms[room.id]:
+        if rooms[room.id]['stream'] is None:
             username, password = room._connector.get_credentials()
-            rooms[room.id]['streaming'] = self.listen(username, password, room.id, incoming, error)
+            rooms[room.id]['stream'] = self.listen(username, password, room.id, incoming, error)
 
     def listen(self, username, password, room_id, callback, errback):
-
         auth_header = 'Basic ' + base64.b64encode("%s:%s" % (username, password)).strip()
         url = 'https://streaming.campfirenow.com/room/%s/live.json' % room_id
         headers = Headers({
@@ -93,9 +110,11 @@ class LuckyStrikeIRCUser(service.IRCUser):
         room = campfire.find_room_by_name(room_info['name'])
         room.leave()
         try:
-            print type(rooms[room.id]['streaming'])
-            print dir(rooms[room.id]['streaming'])
-            rooms[room.id]['streaming'].cancel()
+            # This doesn't seem to do what we want yet, need to figure out how to
+            # actually cut off the stream
+            rooms[room.id]['stream'].pause()
+            rooms[room.id]['stream'].cancel()
+            rooms[room.id]['streaming'] = False
         except:
             log.err()
 
@@ -118,6 +137,10 @@ def write_message(message, user, channel):
 def incoming(message):
     log.msg(message)
 
+    if not rooms[message['room_id']]['streaming']:
+        log.msg('Should not be streaming this room, ignoring!')
+        return
+
     if message['user_id'] is not None:
         user = campfire.user(message['user_id'])['user']
     else:
@@ -126,9 +149,11 @@ def incoming(message):
     if message['type'] == 'TextMessage':
         write_message(message['body'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
     if message['type'] == 'KickMessage':
-        write_message('%s has left' % user['name'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
+        pass
+        #write_message('%s has left' % user['name'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
     if message['type'] == 'EnterMessage':
-        write_message('%s has joined' % user['name'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
+        pass
+        #write_message('%s has joined' % user['name'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
 
 def error(e):
     log.err(e)
@@ -163,6 +188,9 @@ if __name__ == '__main__':
         for room in campfire.rooms():
             rooms[room['id']] = room
             rooms[room['id']]['channel'] = campNameToString(room['name'])
+            rooms[room['id']]['stream'] = None
+            rooms[room['id']]['streaming'] = False
+
             log.msg('Adding %s to IRC as %s' % (room['name'], rooms[room['id']]['channel']))
             irc_realm.addGroup(service.Group(rooms[room['id']]['channel']))
 
