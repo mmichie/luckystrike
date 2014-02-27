@@ -42,6 +42,12 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('User authenticated as: %s' % self.avatar.name)
         irc_users[self.avatar.name] = self
 
+    def channelToRoom(self, channel):
+        room_info = lookupChannel(channel.strip('#'))
+        room = campfire.find_room_by_name(room_info['name'])
+
+        return room
+
     def connectionLost(self, reason):
         log.msg('User disconnected')
         del irc_users[self.avatar.name]
@@ -50,8 +56,7 @@ class LuckyStrikeIRCUser(service.IRCUser):
     def names(self, user, channel, names):
         log.msg('names called: %s, %s, %s' % (user, channel, names))
 
-        room_info = lookupChannel(channel.strip('#'))
-        room = campfire.find_room_by_name(room_info['name'])
+        room = self.channelToRoom(channel)
 
         names = []
         users = room._get()['room']['users']
@@ -77,6 +82,13 @@ class LuckyStrikeIRCUser(service.IRCUser):
         if rooms[room.id]['stream'] is None:
             username, password = room._connector.get_credentials()
             rooms[room.id]['stream'] = self.listen(username, password, room.id, incoming, error)
+
+    def irc_PRIVMSG(self, prefix, params):
+        log.msg('privmsg called: !%s!, %s' % (prefix, params))
+        service.IRCUser.irc_PRIVMSG(self, prefix, params)
+        if params[0].startswith('#'):
+            room = self.channelToRoom(params[0])
+            room.speak(params[1])
 
     def listen(self, username, password, room_id, callback, errback):
         auth_header = 'Basic ' + base64.b64encode("%s:%s" % (username, password)).strip()
@@ -146,14 +158,9 @@ def incoming(message):
     else:
         user = None
 
-    if message['type'] == 'TextMessage':
+    # Don't write messages that I've sent, or that aren't Text
+    if message['type'] == 'TextMessage' and campfire.me()['id'] != message['user_id']:
         write_message(message['body'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
-    if message['type'] == 'KickMessage':
-        pass
-        #write_message('%s has left' % user['name'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
-    if message['type'] == 'EnterMessage':
-        pass
-        #write_message('%s has joined' % user['name'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
 
 def error(e):
     log.err(e)
@@ -182,7 +189,7 @@ if __name__ == '__main__':
 
         # connect to Campfire
         campfire = pinder.Campfire(config['domain'], config['api_key']) 
-
+        print campfire.me()
         # Initialize the Cred authentication system used by the IRC server.
         irc_realm = service.InMemoryWordsRealm('LuckyStrike')
         for room in campfire.rooms():
