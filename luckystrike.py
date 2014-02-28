@@ -195,7 +195,7 @@ if __name__ == '__main__':
         users = config['users']
 
         # connect to Campfire
-        campfire = pinder.Campfire(config['domain'], config['api_key']) 
+        campfire = pinder.Campfire(config['domain'], config['api_key'])
         print campfire.me()
         # Initialize the Cred authentication system used by the IRC server.
         irc_realm = service.InMemoryWordsRealm('LuckyStrike')
