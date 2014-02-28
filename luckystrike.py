@@ -12,7 +12,7 @@ from pinder import streaming
 
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
-from twisted.internet import reactor
+from twisted.internet import reactor, ssl
 from twisted.internet import task
 from twisted.internet.defer import Deferred
 from twisted.python import log
@@ -210,6 +210,9 @@ if __name__ == '__main__':
         # Start IRC and Manhole
         reactor.listenTCP(6667, LuckyStrikeIRCFactory(irc_realm, irc_portal))
         reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
+        reactor.listenSSL(6697, LuckyStrikeIRCFactory(irc_realm, irc_portal),
+                          ssl.DefaultOpenSSLContextFactory(
+                            'keys/server.key', 'keys/server.crt'))
 
         reactor.run()
     except:
