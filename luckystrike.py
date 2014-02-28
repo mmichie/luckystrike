@@ -21,7 +21,6 @@ from twisted.web.http_headers import Headers
 from twisted.words import service
 from twisted.words.protocols import irc
 
-users = dict(mmichie='pass1', admin='admin', test1='test1')
 rooms = {}
 irc_users = {}
 
@@ -189,6 +188,7 @@ if __name__ == '__main__':
     try:
         config_file = open('config.json')
         config = dict(json.loads(config_file.read()))
+        users = config['users']
 
         # connect to Campfire
         campfire = pinder.Campfire(config['domain'], config['api_key']) 
