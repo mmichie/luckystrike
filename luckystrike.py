@@ -72,19 +72,19 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('who called: %s, %s, %s' % (user, channel, memberInfo))
 
     def irc_JOIN(self, prefix, params):
-        service.IRCUser.irc_JOIN(self, prefix, params)
-        log.msg('Joined channel: %s, %s' % (prefix, params))
+        for channel in params[0].split(','):
+            service.IRCUser.irc_JOIN(self, prefix, [channel])
+            log.msg('Joined channel: %s, %s' % (prefix, channel))
+            # Join Campfire room
+            room_info = lookupChannel(channel.strip('#'))
+            log.msg('Starting to stream: %s' % room_info['name'])
+            room = campfire.find_room_by_name(room_info['name'])
+            room.join()
+            rooms[room.id]['streaming'] = True
 
-        # Join Campfire room
-        room_info = lookupChannel(params[0].strip('#'))
-        log.msg('Starting to stream: %s' % room_info['name'])
-        room = campfire.find_room_by_name(room_info['name'])
-        room.join()
-        rooms[room.id]['streaming'] = True
-
-        if rooms[room.id]['stream'] is None:
-            username, password = room._connector.get_credentials()
-            rooms[room.id]['stream'] = self.listen(username, password, room.id, incoming, error)
+            if rooms[room.id]['stream'] is None:
+                username, password = room._connector.get_credentials()
+                rooms[room.id]['stream'] = self.listen(username, password, room.id, incoming, error)
 
     def irc_PRIVMSG(self, prefix, params):
         log.msg('privmsg called: !%s!, %s' % (prefix, params))
