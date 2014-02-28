@@ -51,8 +51,9 @@ class LuckyStrikeIRCUser(service.IRCUser):
         return room
 
     def connectionLost(self, reason):
-        log.msg('User disconnected')
-        del irc_users[self.avatar.name]
+        log.msg('User disconnected: %s', reason)
+        if self.avatar is not None:
+            del irc_users[self.avatar.name]
         service.IRCUser.connectionLost(self, reason)
 
     def names(self, user, channel, names):
