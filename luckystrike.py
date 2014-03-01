@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding=utf-8
+
 import base64
 import json
 import re
@@ -9,7 +12,7 @@ from pinder import streaming
 
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
-from twisted.internet import reactor
+from twisted.internet import reactor, ssl
 from twisted.internet import task
 from twisted.internet.defer import Deferred
 from twisted.python import log
@@ -18,7 +21,6 @@ from twisted.web.http_headers import Headers
 from twisted.words import service
 from twisted.words.protocols import irc
 
-users = dict(mmichie='pass1', admin='admin', test1='test1')
 rooms = {}
 irc_users = {}
 
@@ -49,8 +51,9 @@ class LuckyStrikeIRCUser(service.IRCUser):
         return room
 
     def connectionLost(self, reason):
-        log.msg('User disconnected')
-        del irc_users[self.avatar.name]
+        log.msg('User disconnected: %s', reason)
+        if self.avatar is not None:
+            del irc_users[self.avatar.name]
         service.IRCUser.connectionLost(self, reason)
 
     def names(self, user, channel, names):
@@ -69,19 +72,19 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('who called: %s, %s, %s' % (user, channel, memberInfo))
 
     def irc_JOIN(self, prefix, params):
-        service.IRCUser.irc_JOIN(self, prefix, params)
-        log.msg('Joined channel: %s, %s' % (prefix, params))
+        for channel in params[0].split(','):
+            service.IRCUser.irc_JOIN(self, prefix, [channel])
+            log.msg('Joined channel: %s, %s' % (prefix, channel))
+            # Join Campfire room
+            room_info = lookupChannel(channel.strip('#'))
+            log.msg('Starting to stream: %s' % room_info['name'])
+            room = campfire.find_room_by_name(room_info['name'])
+            room.join()
+            rooms[room.id]['streaming'] = True
 
-        # Join Campfire room
-        room_info = lookupChannel(params[0].strip('#'))
-        log.msg('Starting to stream: %s' % room_info['name'])
-        room = campfire.find_room_by_name(room_info['name'])
-        room.join()
-        rooms[room.id]['streaming'] = True
-
-        if rooms[room.id]['stream'] is None:
-            username, password = room._connector.get_credentials()
-            rooms[room.id]['stream'] = self.listen(username, password, room.id, incoming, error)
+            if rooms[room.id]['stream'] is None:
+                username, password = room._connector.get_credentials()
+                rooms[room.id]['stream'] = self.listen(username, password, room.id, incoming, error)
 
     def irc_PRIVMSG(self, prefix, params):
         log.msg('privmsg called: !%s!, %s' % (prefix, params))
@@ -129,6 +132,12 @@ class LuckyStrikeIRCUser(service.IRCUser):
             rooms[room.id]['streaming'] = False
         except:
             log.err()
+
+    def irc_ISON(self, prefix, params):
+        log.msg('ISON called: %s' % (params))
+
+    def irc_CAP(self, prefix, params):
+        log.msg('CAP called: %s' % (params))
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
@@ -186,9 +195,10 @@ if __name__ == '__main__':
     try:
         config_file = open('config.json')
         config = dict(json.loads(config_file.read()))
+        users = config['users']
 
         # connect to Campfire
-        campfire = pinder.Campfire(config['domain'], config['api_key']) 
+        campfire = pinder.Campfire(config['domain'], config['api_key'])
         print campfire.me()
         # Initialize the Cred authentication system used by the IRC server.
         irc_realm = service.InMemoryWordsRealm('LuckyStrike')
@@ -207,6 +217,9 @@ if __name__ == '__main__':
         # Start IRC and Manhole
         reactor.listenTCP(6667, LuckyStrikeIRCFactory(irc_realm, irc_portal))
         reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
+        reactor.listenSSL(6697, LuckyStrikeIRCFactory(irc_realm, irc_portal),
+                          ssl.DefaultOpenSSLContextFactory(
+                            'keys/server.key', 'keys/server.crt'))
 
         reactor.run()
     except:
