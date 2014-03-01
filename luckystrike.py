@@ -13,13 +13,11 @@ from pinder import streaming
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
 from twisted.internet import reactor, ssl
-from twisted.internet import task
 from twisted.internet.defer import Deferred
 from twisted.python import log
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
 from twisted.words import service
-from twisted.words.protocols import irc
 
 rooms = {}
 irc_users = {}
