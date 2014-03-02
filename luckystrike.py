@@ -5,6 +5,7 @@ import base64
 import json
 import re
 import sys
+import os
 
 import pinder
 from pinder.campfire import USER_AGENT
@@ -215,9 +216,13 @@ if __name__ == '__main__':
         # Start IRC and Manhole
         reactor.listenTCP(6667, LuckyStrikeIRCFactory(irc_realm, irc_portal))
         reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
-        reactor.listenSSL(6697, LuckyStrikeIRCFactory(irc_realm, irc_portal),
-                          ssl.DefaultOpenSSLContextFactory(
-                            'keys/server.key', 'keys/server.crt'))
+        if (
+                os.path.exists(config.get('ssl_crt', '')) and
+                os.path.exists(config.get('ssl_key', ''))):
+            reactor.listenSSL(6697,
+                              LuckyStrikeIRCFactory(irc_realm, irc_portal),
+                              ssl.DefaultOpenSSLContextFactory(
+                                config['ssl_key'], config['ssl_crt']))
 
         reactor.run()
     except:
