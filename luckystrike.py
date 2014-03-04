@@ -139,10 +139,10 @@ class LuckyStrikeIRCUser(service.IRCUser):
             log.err()
 
     def irc_ISON(self, prefix, params):
-        log.msg('ISON called: %s' % (params))
+        pass
 
     def irc_CAP(self, prefix, params):
-        log.msg('CAP called: %s' % (params))
+        pass
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
