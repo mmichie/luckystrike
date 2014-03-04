@@ -93,17 +93,17 @@ class LuckyStrikeIRCUser(service.IRCUser):
 
     def irc_TOPIC(self, prefix, params):
         service.IRCUser.irc_TOPIC(self, prefix, params)
-        log.msg('IRC topic called: %s, %s' % (prefix, params))
         channel = params[0].strip('#')
         topic = params[1]
         room = self.channelToRoom(channel)
+        log.msg('Setting topic: %s on %s' % (room.name, topic))
         room.update(room.name, topic)
 
     def irc_PRIVMSG(self, prefix, params):
-        log.msg('privmsg called: !%s!, %s' % (prefix, params))
         service.IRCUser.irc_PRIVMSG(self, prefix, params)
         if params[0].startswith('#'):
             room = self.channelToRoom(params[0])
+            log.msg('Speaking to %s: %s' % (room.name, params[1]))
             room.speak(params[1])
 
     def listen(self, username, password, room_id, callback, errback):
@@ -119,14 +119,6 @@ class LuckyStrikeIRCUser(service.IRCUser):
         d.addCallback(_get_response, callback, errback)
 
         return d
-
-    def receive(self, sender, recipient, message):
-        log.msg('Receive: %s' % message)
-        service.IRCUser.receive(self, sender, recipient, message)
-
-    def privmsg(self, sender, recip, message):
-        service.IRCUser.privmsg(self, sender, recip, message)
-        log.msg('Got sent a privmsg: %s, %s, %s' % (sender, recip, message))
 
     def irc_PART(self, prefix, params):
         service.IRCUser.irc_PART(self, prefix, params)
@@ -154,7 +146,6 @@ class LuckyStrikeIRCUser(service.IRCUser):
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
-
 
 def lookupChannel(channel):
     for room_id, room in rooms.iteritems():
@@ -210,7 +201,6 @@ if __name__ == '__main__':
 
         # connect to Campfire
         campfire = pinder.Campfire(config['domain'], config['api_key'])
-        print campfire.me()
         # Initialize the Cred authentication system used by the IRC server.
         irc_realm = service.InMemoryWordsRealm('LuckyStrike')
         for room in campfire.rooms():
