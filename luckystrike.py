@@ -22,6 +22,9 @@ from twisted.words import service
 rooms = {}
 irc_users = {}
 
+def campNameToString(name):
+    return re.sub('\s+', '_', name).lower()
+
 def _get_response(response, callback, errback):
     response.deliverBody(streaming.StreamingParser(callback, errback))
     return Deferred()
@@ -71,10 +74,14 @@ class LuckyStrikeIRCUser(service.IRCUser):
 
     def irc_JOIN(self, prefix, params):
         for channel in params[0].split(','):
+            room_info = lookupChannel(channel.strip('#'))
+            group = irc_realm.groups[campNameToString(room_info['name'])]
+            group.setMetadata({'topic': room_info['topic']})
+
             service.IRCUser.irc_JOIN(self, prefix, [channel])
             log.msg('Joined channel: %s, %s' % (prefix, channel))
+
             # Join Campfire room
-            room_info = lookupChannel(channel.strip('#'))
             log.msg('Starting to stream: %s' % room_info['name'])
             room = campfire.find_room_by_name(room_info['name'])
             room.join()
@@ -83,6 +90,14 @@ class LuckyStrikeIRCUser(service.IRCUser):
             if rooms[room.id]['stream'] is None:
                 username, password = room._connector.get_credentials()
                 rooms[room.id]['stream'] = self.listen(username, password, room.id, incoming, error)
+
+    def irc_TOPIC(self, prefix, params):
+        service.IRCUser.irc_TOPIC(self, prefix, params)
+        log.msg('IRC topic called: %s, %s' % (prefix, params))
+        channel = params[0].strip('#')
+        topic = params[1]
+        room = self.channelToRoom(channel)
+        room.update(room.name, topic)
 
     def irc_PRIVMSG(self, prefix, params):
         log.msg('privmsg called: !%s!, %s' % (prefix, params))
@@ -140,8 +155,6 @@ class LuckyStrikeIRCUser(service.IRCUser):
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
 
-def campNameToString(name):
-    return re.sub('\s+', '_', name).lower()
 
 def lookupChannel(channel):
     for room_id, room in rooms.iteritems():
