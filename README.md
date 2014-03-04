@@ -15,6 +15,7 @@ operations:
     /LIST                       List rooms
     /JOIN #day_job              Join the "Day Job" room
     /PART #day_job              Leave the "Day Job" room
+    /TOPIC #day_job new topic   Change room's topic to "new topic"
 
 Dependencies
 ============
@@ -29,6 +30,7 @@ SSL keys
 ========
 
 openssl genrsa > keys/server.key
+
 openssl req -new -x509 -key keys/server.key -out keys/server.crt -days 1000
 
 License
