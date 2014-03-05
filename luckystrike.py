@@ -158,8 +158,7 @@ def write_message(message, user, channel):
         log.msg('Writing to %s on %s: %s' % (user_name, channel, message))
 
 def incoming(message):
-    log.msg(message)
-
+    # Do not write messages for rooms user isn't in
     if not rooms[message['room_id']]['streaming']:
         log.msg('Should not be streaming this room, ignoring!')
         return
@@ -172,6 +171,30 @@ def incoming(message):
     # Don't write messages that I've sent, or that aren't Text
     if message['type'] == 'TextMessage' and campfire.me()['id'] != message['user_id']:
         write_message(message['body'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
+    elif message['type'] == 'EnterMessage':
+        log.msg('EnterMessage %s joined %s' % (message['user_id'], message['room_id']))
+    elif message['type'] == 'KickMessage':
+        log.msg('KickMessage %s left %s' % (message['user_id'], message['room_id']))
+    elif message['type'] == 'LeaveMessage':
+        log.msg('KickMessage %s left %s' % (message['user_id'], message['room_id']))
+    elif message['type'] == 'PasteMessage':
+        log.msg('PasteMessage: %s' % message['body'])
+    elif message['type'] == 'SoundMessage':
+        log.msg('SoundMessage: %s' % message['body'])
+    elif message['type'] == 'TweetMessage':
+        log.msg('TweetMessage: %s' % message['body'])
+    elif message['type'] == 'TimestampMessage':
+        pass
+    elif message['type'] == 'UploadMessage':
+        log.msg('UploadMessage: %s' % message['body'])
+    elif message['type'] == 'TopicChangeMessage':
+        log.msg('TopicChangeMessage: %s' % message['body'])
+    elif message['type'] == 'AllowGuestsMessage':
+        log.msg('AllowGuestsMessage: %s' % message['body'])
+    elif message['type'] == 'DisallowGuestsMessage':
+        log.msg('DisallowGuestsMessage: %s' % message['body'])
+    else:
+        log.err('Unknown message type received: %s' % message)
 
 def error(e):
     log.err(e)
