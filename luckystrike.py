@@ -32,10 +32,9 @@ def _get_response(response, callback, errback):
 class LuckyStrikeIRCUser(service.IRCUser):
 
     """
-    Override Twisted's IRC USer
-
-    Note: consider overriding irc_NICK to prevent nickserv password prompt
+    Override Twisted's IRC User
     """
+
     def connectionMade(self):
         service.IRCUser.connectionMade(self)
         log.msg('User connected from %s' % self.hostname)
@@ -193,7 +192,7 @@ def incoming(message):
         log.msg('AllowGuestsMessage: %s' % message['body'])
     elif message['type'] == 'DisallowGuestsMessage':
         log.msg('DisallowGuestsMessage: %s' % message['body'])
-    else:
+    elif campfire.me()['id'] != message['user_id']:
         log.err('Unknown message type received: %s' % message)
 
 def error(e):
