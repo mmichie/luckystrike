@@ -177,7 +177,11 @@ def incoming(message):
     elif message['type'] == 'LeaveMessage':
         log.msg('KickMessage %s left %s' % (message['user_id'], message['room_id']))
     elif message['type'] == 'PasteMessage':
-        log.msg('PasteMessage: %s' % message['body'])
+        # Write first 5 lines of paste
+        write_message('Paste: https://twitter.campfirenow.com/room/%s/paste/%s' % (message['room_id'], message['id']), campNameToString(user['name']), rooms[message['room_id']]['channel'])
+        for line in message['body'].splitlines()[:5]:
+            write_message(line, campNameToString(user['name']), rooms[message['room_id']]['channel'])
+
     elif message['type'] == 'SoundMessage':
         log.msg('SoundMessage: %s' % message['body'])
     elif message['type'] == 'TweetMessage':
