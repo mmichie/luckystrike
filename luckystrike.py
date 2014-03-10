@@ -88,7 +88,8 @@ class LuckyStrikeIRCUser(service.IRCUser):
 
             if rooms[room.id]['stream'] is None:
                 username, password = room._connector.get_credentials()
-                rooms[room.id]['stream'] = self.listen(username, password, room.id, incoming, error)
+                rooms[room.id]['stream'] = self.listen(username, password,
+                        room.id, incoming, error)
 
     def irc_TOPIC(self, prefix, params):
         service.IRCUser.irc_TOPIC(self, prefix, params)
@@ -106,7 +107,9 @@ class LuckyStrikeIRCUser(service.IRCUser):
             room.speak(params[1])
 
     def listen(self, username, password, room_id, callback, errback):
-        auth_header = 'Basic ' + base64.b64encode("%s:%s" % (username, password)).strip()
+        auth_header = 'Basic ' + base64.b64encode("%s:%s" % (username,
+            password)).strip()
+
         url = 'https://streaming.campfirenow.com/room/%s/live.json' % room_id
         headers = Headers({
             'User-Agent': [USER_AGENT],
@@ -129,8 +132,8 @@ class LuckyStrikeIRCUser(service.IRCUser):
         room = campfire.find_room_by_name(room_info['name'])
         room.leave()
         try:
-            # This doesn't seem to do what we want yet, need to figure out how to
-            # actually cut off the stream
+            # This doesn't seem to do what we want yet, need to figure out how
+            # to actually cut off the stream
             rooms[room.id]['stream'].pause()
             rooms[room.id]['stream'].cancel()
             rooms[room.id]['streaming'] = False
@@ -169,7 +172,8 @@ def incoming(message):
 
     # Don't write messages that I've sent, or that aren't Text
     if message['type'] == 'TextMessage' and campfire.me()['id'] != message['user_id']:
-        write_message(message['body'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
+        write_message(message['body'], campNameToString(user['name']),
+                rooms[message['room_id']]['channel'])
     elif message['type'] == 'EnterMessage':
         log.msg('EnterMessage %s joined %s' % (message['user_id'], message['room_id']))
     elif message['type'] == 'KickMessage':
@@ -235,7 +239,9 @@ if __name__ == '__main__':
             rooms[room['id']]['stream'] = None
             rooms[room['id']]['streaming'] = False
 
-            log.msg('Adding %s to IRC as %s' % (room['name'], rooms[room['id']]['channel']))
+            log.msg('Adding %s to IRC as %s' % (room['name'],
+                rooms[room['id']]['channel']))
+
             irc_realm.addGroup(service.Group(rooms[room['id']]['channel']))
 
         user_db = checkers.InMemoryUsernamePasswordDatabaseDontUse(**users)
