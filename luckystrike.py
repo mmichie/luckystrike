@@ -185,7 +185,7 @@ def incoming(message):
     elif message['type'] == 'SoundMessage':
         log.msg('SoundMessage: %s' % message['body'])
     elif message['type'] == 'TweetMessage':
-        log.msg('TweetMessage: %s' % message['body'])
+        write_message(message['body'], campNameToString(user['name']), rooms[message['room_id']]['channel'])
     elif message['type'] == 'TimestampMessage':
         pass
     elif message['type'] == 'UploadMessage':
