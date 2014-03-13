@@ -3,5 +3,7 @@
     "api_key": "ABC123ABC123ABC123ABC123ABC123ABC123ABC123",
     "users": {
         "username": "password"
-    }
+    },
+    "ssl_key": "keys/server.key",
+    "ssl_crt": "keys/server.crt"
 }

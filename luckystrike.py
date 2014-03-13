@@ -5,6 +5,7 @@ import base64
 import json
 import re
 import sys
+import os
 
 import pinder
 from pinder.campfire import USER_AGENT
@@ -18,6 +19,8 @@ from twisted.python import log
 from twisted.web.client import Agent
 from twisted.web.http_headers import Headers
 from twisted.words import service
+
+from twisted.internet import defer, protocol
 
 rooms = {}
 irc_users = {}
@@ -146,6 +149,92 @@ class LuckyStrikeIRCUser(service.IRCUser):
     def irc_CAP(self, prefix, params):
         pass
 
+    def irc_LIST(self, prefix, params):
+        """List query
+
+        Return information about the indicated channels, or about all
+        channels if none are specified.
+
+        Parameters: [ <channel> *( "," <channel> ) [ <target> ] ]
+        """
+        #<< list #python
+        #>> :orwell.freenode.net 321 exarkun Channel :Users  Name
+        #>> :orwell.freenode.net 322 exarkun #python 358 :The Python programming language
+        #>> :orwell.freenode.net 323 exarkun :End of /LIST
+        if params:
+            # Return information about indicated channels
+            try:
+                channels = params[0].decode(self.encoding).split(',')
+            except UnicodeDecodeError:
+                self.sendMessage(
+                    irc.ERR_NOSUCHCHANNEL, params[0],
+                    ":No such channel (could not decode your unicode!)")
+                return
+
+            groups = []
+            for ch in channels:
+                if ch.startswith('#'):
+                    ch = ch[1:]
+                groups.append(self.realm.lookupGroup(ch))
+
+            groups = defer.DeferredList(groups, consumeErrors=True)
+            groups.addCallback(lambda gs: [r for (s, r) in gs if s])
+        else:
+            # Return information about all channels
+            groups = self.realm.itergroups()
+
+        def cbGroups(groups):
+            def gotSize(size, group):
+                return '#'+group.name, size, group.meta.get('topic')
+            d = defer.DeferredList([
+                group.size().addCallback(gotSize, group) for group in groups])
+            d.addCallback(lambda results: self.list([r for (s, r) in results if s]))
+            return d
+        groups.addCallback(cbGroups)
+
+    def irc_LIST(self, prefix, params):
+        """List query
+
+        Return information about the indicated channels, or about all
+        channels if none are specified.
+
+        Parameters: [ <channel> *( "," <channel> ) [ <target> ] ]
+        """
+        #<< list #python
+        #>> :orwell.freenode.net 321 exarkun Channel :Users  Name
+        #>> :orwell.freenode.net 322 exarkun #python 358 :The Python programming language
+        #>> :orwell.freenode.net 323 exarkun :End of /LIST
+        if params:
+            # Return information about indicated channels
+            try:
+                channels = params[0].decode(self.encoding).split(',')
+            except UnicodeDecodeError:
+                self.sendMessage(
+                    irc.ERR_NOSUCHCHANNEL, params[0],
+                    ":No such channel (could not decode your unicode!)")
+                return
+
+            groups = []
+            for ch in channels:
+                if ch.startswith('#'):
+                    ch = ch[1:]
+                groups.append(self.realm.lookupGroup(ch))
+
+            groups = defer.DeferredList(groups, consumeErrors=True)
+            groups.addCallback(lambda gs: [r for (s, r) in gs if s])
+        else:
+            # Return information about all channels
+            groups = self.realm.itergroups()
+
+        def cbGroups(groups):
+            def gotSize(size, group):
+                return '#'+group.name, size, group.meta.get('topic')
+            d = defer.DeferredList([
+                group.size().addCallback(gotSize, group) for group in groups])
+            d.addCallback(lambda results: self.list([r for (s, r) in results if s]))
+            return d
+        groups.addCallback(cbGroups)
+
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
 
@@ -250,9 +339,13 @@ if __name__ == '__main__':
         # Start IRC and Manhole
         reactor.listenTCP(6667, LuckyStrikeIRCFactory(irc_realm, irc_portal))
         reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
-        reactor.listenSSL(6697, LuckyStrikeIRCFactory(irc_realm, irc_portal),
-                          ssl.DefaultOpenSSLContextFactory(
-                            'keys/server.key', 'keys/server.crt'))
+        if (
+                os.path.exists(config.get('ssl_crt', '')) and
+                os.path.exists(config.get('ssl_key', ''))):
+            reactor.listenSSL(6697,
+                              LuckyStrikeIRCFactory(irc_realm, irc_portal),
+                              ssl.DefaultOpenSSLContextFactory(
+                                config['ssl_key'], config['ssl_crt']))
 
         reactor.run()
     except:
