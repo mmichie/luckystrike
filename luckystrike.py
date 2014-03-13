@@ -1,22 +1,17 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-import base64
 import json
 import re
 import sys
 
 import pinder
-from pinder.campfire import USER_AGENT
-from pinder import streaming
+import stream
 
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
 from twisted.internet import reactor, ssl
-from twisted.internet.defer import Deferred
 from twisted.python import log
-from twisted.web.client import Agent
-from twisted.web.http_headers import Headers
 from twisted.words import service
 
 rooms = {}
@@ -24,10 +19,6 @@ irc_users = {}
 
 def campNameToString(name):
     return re.sub('\s+', '_', name).lower()
-
-def _get_response(response, callback, errback):
-    response.deliverBody(streaming.StreamingParser(callback, errback))
-    return Deferred()
 
 class LuckyStrikeIRCUser(service.IRCUser):
 
@@ -88,8 +79,8 @@ class LuckyStrikeIRCUser(service.IRCUser):
 
             if rooms[room.id]['stream'] is None:
                 username, password = room._connector.get_credentials()
-                rooms[room.id]['stream'] = self.listen(username, password,
-                        room.id, incoming, error)
+                rooms[room.id]['stream'] = stream.listen(username, room.id,
+                    incoming, error)
 
     def irc_TOPIC(self, prefix, params):
         service.IRCUser.irc_TOPIC(self, prefix, params)
@@ -105,22 +96,6 @@ class LuckyStrikeIRCUser(service.IRCUser):
             room = self.channelToRoom(params[0])
             log.msg('Speaking to %s: %s' % (room.name, params[1]))
             room.speak(params[1])
-
-    def listen(self, username, password, room_id, callback, errback):
-        auth_header = 'Basic ' + base64.b64encode("%s:%s" % (username,
-            password)).strip()
-
-        url = 'https://streaming.campfirenow.com/room/%s/live.json' % room_id
-        headers = Headers({
-            'User-Agent': [USER_AGENT],
-            'Authorization': [auth_header]})
-
-        # issue the request
-        agent = Agent(reactor)
-        d = agent.request('GET', url, headers, None)
-        d.addCallback(_get_response, callback, errback)
-
-        return d
 
     def irc_PART(self, prefix, params):
         service.IRCUser.irc_PART(self, prefix, params)
