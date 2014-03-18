@@ -132,13 +132,9 @@ def lookupChannel(channel):
 def write_message(message, user, channel):
     for user_name, client in irc_users.iteritems():
         client.privmsg(user, '#%s' % channel, message)
-        log.msg('Writing to %s on %s: %s' % (user_name, channel, message))
+        log.msg('Writing to %s on %s: %s' % (user_name, channel, message.encode('ascii', 'ignore')))
 
 def incoming(message):
-
-    # we will lose non-ASCII unicode characters here
-    if message['body'] != None:
-        message['body'] = message['body'].encode('ascii', 'ignore')
 
     # Do not write messages for rooms user isn't in
     if not rooms[message['room_id']]['streaming']:
