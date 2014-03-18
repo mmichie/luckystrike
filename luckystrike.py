@@ -11,12 +11,11 @@ import stream
 
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
+from twisted.internet import defer
 from twisted.internet import reactor, ssl
 from twisted.python import log
 from twisted.words import service
 from twisted.words.protocols import irc
-
-from twisted.internet import defer
 
 rooms = {}
 irc_users = {}
