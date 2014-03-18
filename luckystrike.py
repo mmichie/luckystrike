@@ -135,6 +135,10 @@ def write_message(message, user, channel):
         log.msg('Writing to %s on %s: %s' % (user_name, channel, message))
 
 def incoming(message):
+
+    # we could lose unicode characters here
+    message['body'] = message['body'].encode('ascii', 'ignore')
+
     # Do not write messages for rooms user isn't in
     if not rooms[message['room_id']]['streaming']:
         log.msg('Should not be streaming this room, ignoring!')
