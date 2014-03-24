@@ -207,7 +207,6 @@ def incoming(message):
         write_message('Paste: https://twitter.campfirenow.com/room/%s/paste/%s' % (message['room_id'], message['id']), campNameToString(user['name']), rooms[message['room_id']]['channel'])
         for line in message['body'].splitlines()[:5]:
             write_message(line, campNameToString(user['name']), rooms[message['room_id']]['channel'])
-
     elif message['type'] == 'SoundMessage':
         log.msg('SoundMessage: %s' % message['body'])
     elif message['type'] == 'TweetMessage':
@@ -227,6 +226,8 @@ def incoming(message):
 
 def error(e):
     log.err(e)
+    for user_name, client in irc_users.iteritems():
+        client.sendLine('NOTICE :%s' % e)
 
 def getManholeFactory(namespace, **passwords):
     realm = manhole_ssh.TerminalRealm()
