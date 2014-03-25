@@ -180,6 +180,14 @@ def write_message(message, user, channel):
         client.privmsg(user, '#%s' % channel, message)
         log.msg('Writing to %s on %s: %s' % (user_name, channel, message.encode('ascii', 'ignore')))
 
+def write_part_message(user, channel, reason=None):
+    for user_name, client in irc_users.iteritems():
+        client.part('%s!campfire@luckystrike' % user, channel, reason)
+
+def write_join_message(user, channel):
+    for user_name, client in irc_users.iteritems():
+        client.join('%s!campfire@luckystrike' % user, channel)
+
 def incoming(message):
 
     # Do not write messages for rooms user isn't in
@@ -192,16 +200,24 @@ def incoming(message):
     else:
         user = None
 
+    channel = '#' + rooms[message['room_id']]['channel']
+
     # Don't write messages that I've sent, or that aren't Text
     if message['type'] == 'TextMessage' and campfire.me()['id'] != message['user_id']:
         write_message(message['body'], campNameToString(user['name']),
                 rooms[message['room_id']]['channel'])
     elif message['type'] == 'EnterMessage':
         log.msg('EnterMessage %s joined %s' % (message['user_id'], message['room_id']))
+        nick = campNameToString(campfire.user(message['user_id'])['user']['name'])
+        write_join_message(nick, channel)
     elif message['type'] == 'KickMessage':
         log.msg('KickMessage %s left %s' % (message['user_id'], message['room_id']))
+        nick = campNameToString(campfire.user(message['user_id'])['user']['name'])
+        write_part_message(nick, channel, 'Timed out')
     elif message['type'] == 'LeaveMessage':
-        log.msg('KickMessage %s left %s' % (message['user_id'], message['room_id']))
+        log.msg('LeaveMessage %s left %s' % (message['user_id'], message['room_id']))
+        nick = campNameToString(campfire.user(message['user_id'])['user']['name'])
+        write_part_message(nick, channel, 'Left channel')
     elif message['type'] == 'PasteMessage':
         # Write first 5 lines of paste
         write_message('Paste: https://twitter.campfirenow.com/room/%s/paste/%s' % (message['room_id'], message['id']), campNameToString(user['name']), rooms[message['room_id']]['channel'])
