@@ -2,3 +2,4 @@ pinder
 twisted
 pycrypto
 pyOpenSSL
+pyasn1

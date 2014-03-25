@@ -25,6 +25,7 @@ Dependencies
   * [Twisted](https://twistedmatrix.com/trac/)
   * [PyCrypto](https://www.dlitz.net/software/pycrypto/)
   * [pyOpenSSL](https://github.com/pyca/pyopenssl)
+  * [pyasn1](http://pyasn1.sourceforge.net/)
 
 SSL keys
 ========
