@@ -233,6 +233,8 @@ def incoming(message):
         log.msg('UploadMessage: %s' % message['body'])
     elif message['type'] == 'TopicChangeMessage':
         log.msg('TopicChangeMessage: %s' % message['body'])
+        group = irc_realm.groups[rooms[message['room_id']]['channel']]
+        group.setMetadata({'topic': message['body']})
     elif message['type'] == 'AllowGuestsMessage':
         log.msg('AllowGuestsMessage: %s' % message['body'])
     elif message['type'] == 'DisallowGuestsMessage':
