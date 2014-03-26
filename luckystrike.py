@@ -97,8 +97,8 @@ class LuckyStrikeIRCUser(service.IRCUser):
         service.IRCUser.irc_PRIVMSG(self, prefix, params)
         if params[0].startswith('#'):
             room = self.channelToRoom(params[0])
-            log.msg('Speaking to %s: %s' % (room.name, params[1]))
             room.speak(params[1])
+            log.msg('Speaking to %s: %s' % (room.name, params[1].decode('ascii', 'ignore')))
 
     def irc_PART(self, prefix, params):
         service.IRCUser.irc_PART(self, prefix, params)
