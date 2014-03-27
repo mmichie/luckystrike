@@ -57,7 +57,7 @@ if __name__ == '__main__':
             reactor.listenSSL(6697,
                               LuckyStrikeIRCFactory(config.irc_realm, irc_portal),
                               ssl.DefaultOpenSSLContextFactory(
-                                config['ssl_key'], config['ssl_crt']))
+                                config.configuration['ssl_key'], config.configuration['ssl_crt']))
 
         reactor.run()
     except:
