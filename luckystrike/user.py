@@ -3,10 +3,10 @@ from twisted.python import log
 from twisted.words import service
 from twisted.words.protocols import irc
 
-import util
-import stream
-import config
-import route
+from luckystrike import util
+from luckystrike import stream
+from luckystrike import config
+from luckystrike import route
 
 class LuckyStrikeIRCUser(service.IRCUser):
 

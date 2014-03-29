@@ -10,10 +10,9 @@ from twisted.internet import reactor, ssl
 from twisted.python import log
 from twisted.words import service
 
-import util
-import config
-
-from user import LuckyStrikeIRCFactory
+from luckystrike import util
+from luckystrike import config
+from luckystrike.user import LuckyStrikeIRCFactory
 
 def getManholeFactory(namespace, **passwords):
     realm = manhole_ssh.TerminalRealm()
