@@ -49,7 +49,10 @@ if __name__ == '__main__':
 
         # Start IRC and Manhole
         reactor.listenTCP(6667, LuckyStrikeIRCFactory(config.irc_realm, irc_portal))
-        reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
+
+        if config.args.debug:
+            reactor.listenTCP(2222, getManholeFactory(globals(), admin='aaa'))
+
         if (
                 os.path.exists(config.configuration.get('ssl_crt', '')) and
                 os.path.exists(config.configuration.get('ssl_key', ''))):
