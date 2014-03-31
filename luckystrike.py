@@ -57,14 +57,16 @@ if __name__ == '__main__':
             log.msg('Staring ManHole with admin password of: %s' % admin_password)
             reactor.listenTCP(2222, getManholeFactory(globals(), admin=admin_password))
 
-        if (
-                os.path.exists(config.configuration.get('ssl_crt', '')) and
-                os.path.exists(config.configuration.get('ssl_key', ''))):
-            reactor.listenSSL(6697,
-                              LuckyStrikeIRCFactory(config.irc_realm, irc_portal),
-                              ssl.DefaultOpenSSLContextFactory(
-                                config.configuration['ssl_key'], config.configuration['ssl_crt']))
+        if (os.path.exists(config.configuration.get('ssl_crt', '')) and
+            os.path.exists(config.configuration.get('ssl_key', ''))):
+
+            reactor.listenSSL(6697, LuckyStrikeIRCFactory(config.irc_realm, irc_portal), 
+                    ssl.DefaultOpenSSLContextFactory(
+                        config.configuration['ssl_key'],
+                        config.configuration['ssl_crt'])
+                    )
 
         reactor.run()
+
     except:
         log.err()
