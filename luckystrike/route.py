@@ -1,4 +1,5 @@
 import config
+import dateutil.parser
 import util
 
 from twisted.python import log
@@ -59,7 +60,7 @@ def route_incoming_message(message):
     elif message['type'] == 'TweetMessage':
         write_message(message['body'], util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
     elif message['type'] == 'TimestampMessage':
-        pass
+        config.rooms[message['room_id']]['heartbeat'] = dateutil.parser.parse(message['created_at'])
     elif message['type'] == 'UploadMessage':
         log.msg('UploadMessage: %s' % message['body'])
     elif message['type'] == 'TopicChangeMessage':

@@ -40,6 +40,7 @@ if __name__ == '__main__':
             config.rooms[room['id']]['channel'] = util.campNameToString(room['name'])
             config.rooms[room['id']]['stream'] = None
             config.rooms[room['id']]['streaming'] = False
+            config.rooms[room['id']]['heartbeat'] = None
 
             log.msg('Adding %s to IRC as %s' % (room['name'],
                 config.rooms[room['id']]['channel']))
