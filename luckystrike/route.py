@@ -49,8 +49,11 @@ def route_incoming_message(message):
     elif message['type'] == 'PasteMessage':
         # Write first 5 lines of paste
         write_message('Paste: https://twitter.campfirenow.com/room/%s/paste/%s' % (message['room_id'], message['id']), util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
-        for line in message['body'].splitlines()[:5]:
+        lines = message['body'].splitlines()
+        for line in lines[:5]:
             write_message(line, util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
+        if len(lines) > 5:
+            write_message('... Paste too long ...', util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
     elif message['type'] == 'SoundMessage':
         log.msg('SoundMessage: %s' % message['body'])
     elif message['type'] == 'TweetMessage':
