@@ -1,4 +1,5 @@
 import config
+import datetime
 import dateutil.parser
 import util
 
@@ -30,6 +31,9 @@ def route_incoming_message(message):
         user = None
 
     channel = '#' + config.rooms[message['room_id']]['channel']
+
+    # Update last message seen
+    config.rooms[message['room_id']]['heartbeat'] = datetime.datetime.utcnow()
 
     # Don't write messages that I've sent, or that aren't Text
     if message['type'] == 'TextMessage' and config.campfire.me()['id'] != message['user_id']:

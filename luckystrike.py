@@ -9,6 +9,7 @@ import sys
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
 from twisted.internet import reactor, ssl
+from twisted.internet import task
 from twisted.python import log
 from twisted.words import service
 
@@ -28,6 +29,11 @@ def getManholeFactory(namespace, **passwords):
     f = manhole_ssh.ConchFactory(p)
 
     return f
+
+def watchdog():
+    for room in config.rooms.itervalues():
+        if room['streaming']:
+            log.msg('Last timestamp from %s is %s' % (room['channel'], room['heartbeat']))
 
 if __name__ == '__main__':
 
@@ -67,6 +73,8 @@ if __name__ == '__main__':
                         config.configuration['ssl_crt'])
                     )
 
+        t = task.LoopingCall(watchdog)
+        t.start(240)
         reactor.run()
 
     except:
