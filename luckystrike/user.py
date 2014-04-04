@@ -1,3 +1,5 @@
+import re
+
 from twisted.internet import defer
 from twisted.python import log
 from twisted.words import service
@@ -7,6 +9,34 @@ from luckystrike import util
 from luckystrike import stream
 from luckystrike import config
 from luckystrike import route
+
+def replace_usernames(room, message):
+    users = {}
+    replace = []
+
+    #consider caching this
+    for user in room._get()['room']['users']:
+        users[util.campNameToString(user['name'])] = user['name']
+
+    # find all words that match usernames
+    for m in message.split():
+        a = [(k, v) for (k, v) in users.iteritems() if m.strip(':') == k]
+        for i in a:
+            replace.append(i)
+
+    # search and replace all irc to campfire names
+    if len(replace) > 0:
+        log.msg('Found usernames to replace in message :%s' % replace)
+        message_replacement = message
+        for r in replace:
+            p = re.compile(r[0])
+            message_replacement = p.sub(r[1], message_replacement)
+
+        log.msg('Transforming %s into: %s' % (message, message_replacement))
+
+        return message_replacement
+    else:
+        return message
 
 class LuckyStrikeIRCUser(service.IRCUser):
 
@@ -82,8 +112,9 @@ class LuckyStrikeIRCUser(service.IRCUser):
         service.IRCUser.irc_PRIVMSG(self, prefix, params)
         if params[0].startswith('#'):
             room = self.channelToRoom(params[0])
-            room.speak(params[1])
-            log.msg('Speaking to %s: %s' % (room.name, params[1].decode('ascii', 'ignore')))
+            message = replace_usernames(room, params[1])
+            room.speak(message)
+            log.msg('Speaking to %s: %s' % (room.name, message.decode('ascii', 'ignore')))
 
     def irc_PART(self, prefix, params):
         service.IRCUser.irc_PART(self, prefix, params)
