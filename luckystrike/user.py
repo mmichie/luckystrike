@@ -98,7 +98,7 @@ class LuckyStrikeIRCUser(service.IRCUser):
             if config.rooms[room.id]['stream'] is None:
                 username, password = room._connector.get_credentials()
                 config.rooms[room.id]['stream'] = stream.listen(username, room.id,
-                    route.route_incoming_message, route.error)
+                    route.route_incoming_message, util.error)
 
     def irc_TOPIC(self, prefix, params):
         service.IRCUser.irc_TOPIC(self, prefix, params)
@@ -113,8 +113,11 @@ class LuckyStrikeIRCUser(service.IRCUser):
         if params[0].startswith('#'):
             room = self.channelToRoom(params[0])
             message = replace_usernames(room, params[1])
-            room.speak(message)
             log.msg('Speaking to %s: %s' % (room.name, message.decode('ascii', 'ignore')))
+            try:
+                room.speak(message)
+            except Exception as exception:
+                util.error(exception)
 
     def irc_PART(self, prefix, params):
         service.IRCUser.irc_PART(self, prefix, params)

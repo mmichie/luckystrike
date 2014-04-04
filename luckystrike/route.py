@@ -77,8 +77,3 @@ def route_incoming_message(message):
         log.msg('DisallowGuestsMessage: %s' % message['body'])
     elif config.campfire.me()['id'] != message['user_id']:
         log.err('Unknown message type received: %s' % message)
-
-def error(e):
-    log.err(e)
-    for user_name, client in config.irc_users.iteritems():
-        client.sendLine('NOTICE :%s' % e)
