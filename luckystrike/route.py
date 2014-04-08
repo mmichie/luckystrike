@@ -1,8 +1,7 @@
 import config
-import datetime
-import dateutil.parser
 import util
 
+from datetime import datetime
 from twisted.python import log
 
 def write_message(message, user, channel):
@@ -19,7 +18,7 @@ def write_join_message(user, channel):
         client.join('%s!campfire@luckystrike' % user, channel)
 
 def route_incoming_message(message):
-
+    log.msg('hello: %s' % message)
     # Do not write messages for rooms user isn't in
     if not config.rooms[message['room_id']]['streaming']:
         log.msg('Should not be streaming this room, ignoring!')
@@ -33,7 +32,7 @@ def route_incoming_message(message):
     channel = '#' + config.rooms[message['room_id']]['channel']
 
     # Update last message seen
-    config.rooms[message['room_id']]['heartbeat'] = datetime.datetime.utcnow()
+    config.rooms[message['room_id']]['heartbeat'] = datetime.utcnow()
 
     # Don't write messages that I've sent, or that aren't Text
     if message['type'] == 'TextMessage' and config.campfire.me()['id'] != message['user_id']:
@@ -64,7 +63,8 @@ def route_incoming_message(message):
     elif message['type'] == 'TweetMessage':
         write_message(message['body'], util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
     elif message['type'] == 'TimestampMessage':
-        config.rooms[message['room_id']]['heartbeat'] = dateutil.parser.parse(message['created_at'])
+        config.rooms[message['room_id']]['heartbeat'] =  datetime.strptime(
+                message['created_at'].strip(' +0000'), '%Y/%m/%d %H:%M:%S') 
     elif message['type'] == 'UploadMessage':
         log.msg('UploadMessage: %s' % message['body'])
     elif message['type'] == 'TopicChangeMessage':
