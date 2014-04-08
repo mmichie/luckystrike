@@ -58,6 +58,7 @@ def route_incoming_message(message):
         if len(lines) > 5:
             write_message('... Paste too long ...', util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
     elif message['type'] == 'SoundMessage':
+        write_message('Played a sound: %s' % message['body'], util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
         log.msg('SoundMessage: %s' % message['body'])
     elif message['type'] == 'TweetMessage':
         write_message(message['body'], util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
@@ -65,14 +66,17 @@ def route_incoming_message(message):
         config.rooms[message['room_id']]['heartbeat'] =  datetime.strptime(
                 message['created_at'].strip(' +0000'), '%Y/%m/%d %H:%M:%S') 
     elif message['type'] == 'UploadMessage':
+        write_message('Uploaded: %s' % message['body'], util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
         log.msg('UploadMessage: %s' % message['body'])
     elif message['type'] == 'TopicChangeMessage':
         log.msg('TopicChangeMessage: %s' % message['body'])
         group = config.irc_realm.groups[config.rooms[message['room_id']]['channel']]
         group.setMetadata({'topic': message['body']})
     elif message['type'] == 'AllowGuestsMessage':
+        write_message('Has allowed Guests', util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
         log.msg('AllowGuestsMessage: %s' % message['body'])
     elif message['type'] == 'DisallowGuestsMessage':
+        write_message('Has Disallowed Guests', util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
         log.msg('DisallowGuestsMessage: %s' % message['body'])
     elif config.campfire.me()['id'] != message['user_id']:
         log.err('Unknown message type received: %s' % message)
