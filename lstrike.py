@@ -73,8 +73,10 @@ if __name__ == '__main__':
                         config.configuration['ssl_crt'])
                     )
 
-        t = task.LoopingCall(watchdog)
-        t.start(240)
+        if config.args.debug:
+            t = task.LoopingCall(watchdog)
+            t.start(240)
+
         reactor.run()
 
     except:
