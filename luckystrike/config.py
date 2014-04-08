@@ -1,5 +1,6 @@
 import argparse
 import json
+from os import path
 
 import pinder
 
@@ -8,8 +9,13 @@ from twisted.words import service
 rooms = {}
 irc_users = {}
 
-config_file = open('config.json')
-configuration = dict(json.loads(config_file.read()))
+if path.exists(path.expanduser('~') + '/.luckystrike/config.json'):
+    with open(path.expanduser('~') + '/.luckystrike/config.json') as config_file:
+        configuration = dict(json.loads(config_file.read()))
+else:
+    with open('config.json') as config_file:
+        configuration = dict(json.loads(config_file.read()))
+
 users = configuration['users']
 
 parser = argparse.ArgumentParser(description='Campfire to IRC Proxy')
