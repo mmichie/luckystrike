@@ -18,7 +18,6 @@ def write_join_message(user, channel):
         client.join('%s!campfire@luckystrike' % user, channel)
 
 def route_incoming_message(message):
-    log.msg('hello: %s' % message)
     # Do not write messages for rooms user isn't in
     if not config.rooms[message['room_id']]['streaming']:
         log.msg('Should not be streaming this room, ignoring!')
