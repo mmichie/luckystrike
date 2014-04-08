@@ -62,7 +62,7 @@ if __name__ == '__main__':
         if config.args.debug:
             admin_password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
             log.msg('Staring ManHole with admin password of: %s' % admin_password)
-            reactor.listenTCP(2222, getManholeFactory(globals(), admin=admin_password))
+            reactor.listenTCP(2222, getManholeFactory(globals(), admin=admin_password), interface='127.0.0.1')
 
         if (os.path.exists(config.configuration.get('ssl_crt', '')) and
             os.path.exists(config.configuration.get('ssl_key', ''))):
