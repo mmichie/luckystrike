@@ -143,6 +143,9 @@ class LuckyStrikeIRCUser(service.IRCUser):
     def irc_CAP(self, prefix, params):
         pass
 
+    def irc_AWAY(self, prefix, params):
+        pass
+
     def irc_LIST(self, prefix, params):
         """List query
 
