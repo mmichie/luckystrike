@@ -79,6 +79,15 @@ class LuckyStrikeIRCUser(service.IRCUser):
 
     def who(self, user, channel, memberInfo):
         log.msg('who called: %s, %s, %s' % (user, channel, memberInfo))
+        #[(u'mmichie', 'LuckyStrike', 'LuckyStrike', u'mmichie', 'H', 0, u'mmichie')]
+        room = self.channelToRoom(channel)
+
+        users = room._get()['room']['users']
+        for camp_user in users:
+            name = util.campNameToString(camp_user['name'])
+            memberInfo.append((name, 'LuckyStrike', 'LuckyStrike', name, 'H', 0, name))
+
+        service.IRCUser.who(self, user, channel, memberInfo)
 
     def irc_JOIN(self, prefix, params):
         for channel in params[0].split(','):
