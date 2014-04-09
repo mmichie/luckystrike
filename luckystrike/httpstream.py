@@ -27,6 +27,8 @@ from twisted.protocols import basic
 from twisted.internet import protocol, ssl
 
 from urlparse import urlparse
+from twisted.python import log
+
 
 try:
     import simplejson as _json
@@ -108,7 +110,7 @@ class HttpStreamProtocol(basic.LineReceiver):
                 # ignore newline keep-alive
                 message = _json.loads(unicode(self.status_data.strip(), 'UTF-8'))
             except:
-                pass
+                log.err()
             else:
                 self.factory.consumer.messageReceived(message)
             self.status_data = ""
