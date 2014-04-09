@@ -25,6 +25,7 @@ This code is an adaptation of https://github.com/fiorix/twisted-twitter-stream
 import base64
 from twisted.protocols import basic
 from twisted.internet import protocol, ssl
+from twisted.python import log
 
 from urlparse import urlparse
 
@@ -60,7 +61,7 @@ class MessageReceiver(object):
 
 
 class HttpStreamProtocol(basic.LineReceiver):
-    delimiter = "\r\n"
+    delimiter = "\r"
 
     def __init__(self):
         self.in_header = True
@@ -89,32 +90,14 @@ class HttpStreamProtocol(basic.LineReceiver):
                 self.in_header = False
             break
         else:
-            try:
-                self.status_size = int(line, 16)
-                self.setRawMode()
-            except:
-                pass
-
-    def rawDataReceived(self, data):
-        if self.status_size is not None:
-            data, extra = data[:self.status_size], data[self.status_size:]
-            self.status_size -= len(data)
-        else:
-            extra = ""
-
-        self.status_data += data
-        if self.status_size == 0:
-            try:
-                # ignore newline keep-alive
-                message = _json.loads(unicode(self.status_data.strip(), 'UTF-8'))
-            except:
-                pass
-            else:
+            #log.msg('!(%s): %s!' % (len(line), line))
+            if '{' in line:
+                try:
+                    message = _json.loads(unicode(line.strip(), 'UTF-8'))
+                except:
+                    log.err()
+                    log.err('%s' % line)
                 self.factory.consumer.messageReceived(message)
-            self.status_data = ""
-            self.status_size = None
-            self.setLineMode(extra)
-
 
 class HttpStreamFactory(protocol.ReconnectingClientFactory):
     maxDelay = 120

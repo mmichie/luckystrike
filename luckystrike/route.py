@@ -64,7 +64,9 @@ def route_incoming_message(message):
         write_message(message['body'], util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
     elif message['type'] == 'TimestampMessage':
         config.rooms[message['room_id']]['heartbeat'] =  datetime.strptime(
-                message['created_at'].strip(' +0000'), '%Y/%m/%d %H:%M:%S') 
+                message['created_at'][:-6], '%Y/%m/%d %H:%M:%S') 
+        if config.args.debug:
+            log.msg('Timestamp received: %s' % message['created_at'])
     elif message['type'] == 'UploadMessage':
         write_message('Uploaded: %s' % message['body'], util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
         log.msg('UploadMessage: %s' % message['body'])

@@ -78,8 +78,8 @@ class LuckyStrikeIRCUser(service.IRCUser):
         service.IRCUser.names(self, user, channel, names)
 
     def who(self, user, channel, memberInfo):
-        log.msg('who called: %s, %s, %s' % (user, channel, memberInfo))
         #[(u'mmichie', 'LuckyStrike', 'LuckyStrike', u'mmichie', 'H', 0, u'mmichie')]
+        log.msg('who called: %s, %s, %s' % (user, channel, memberInfo))
         room = self.channelToRoom(channel)
 
         users = room._get()['room']['users']
