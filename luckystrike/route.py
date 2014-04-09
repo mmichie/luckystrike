@@ -66,7 +66,7 @@ def route_incoming_message(message):
         if config.args.debug:
             log.msg('Timestamp received: %s' % message['created_at'])
     elif message['type'] == 'UploadMessage':
-        write_message('Uploaded: %s' % message['body'], util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
+        write_message('Uploaded: https://twitter.campfirenow.com/room/%s/uploads/%s' % (message['room_id'], message['body']), util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
         log.msg('UploadMessage: %s' % message['body'])
     elif message['type'] == 'TopicChangeMessage':
         log.msg('TopicChangeMessage: %s' % message['body'])
