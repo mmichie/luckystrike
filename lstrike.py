@@ -57,17 +57,17 @@ if __name__ == '__main__':
         irc_portal = portal.Portal(config.irc_realm, [user_db])
 
         # Start IRC and Manhole
-        reactor.listenTCP(6667, LuckyStrikeIRCFactory(config.irc_realm, irc_portal))
+        reactor.listenTCP(int(config.configuration.get('port', 6667)), LuckyStrikeIRCFactory(config.irc_realm, irc_portal))
 
         if config.args.debug:
             admin_password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
             log.msg('Staring ManHole with admin password of: %s' % admin_password)
-            reactor.listenTCP(2222, getManholeFactory(globals(), admin=admin_password), interface='127.0.0.1')
+            reactor.listenTCP(int(config.configuration.get('manhole_port', 2222)), getManholeFactory(globals(), admin=admin_password), interface='127.0.0.1')
 
         if (os.path.exists(config.configuration.get('ssl_crt', '')) and
             os.path.exists(config.configuration.get('ssl_key', ''))):
 
-            reactor.listenSSL(6697, LuckyStrikeIRCFactory(config.irc_realm, irc_portal), 
+            reactor.listenSSL(int(config.configuration.get('ssl_port', 6697)), LuckyStrikeIRCFactory(config.irc_realm, irc_portal),
                     ssl.DefaultOpenSSLContextFactory(
                         config.configuration['ssl_key'],
                         config.configuration['ssl_crt'])

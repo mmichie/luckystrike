@@ -5,5 +5,8 @@
         "username": "password"
     },
     "ssl_key": "keys/server.key",
-    "ssl_crt": "keys/server.crt"
+    "ssl_crt": "keys/server.crt",
+    "port": 6667,
+    "ssl_port": 6697,
+    "manhole_port": 2222
 }
