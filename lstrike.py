@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # coding=utf-8
 
+import json
 import os
-import random
-import string
 import sys
+
+from collections import defaultdict
 
 from twisted.conch import manhole, manhole_ssh
 from twisted.cred import checkers, portal
@@ -16,6 +17,29 @@ from twisted.words import service
 from luckystrike import util
 from luckystrike import config
 from luckystrike.user import LuckyStrikeIRCFactory
+
+def setup_config():
+    print 'Please input domain, without tld, for example.com, input example'
+    domain = raw_input('Domain: ')
+    user = raw_input('IRC nickname: ')
+    password = util.generate_password()
+    api_key = raw_input('Campfire API key: ')
+    
+    d = defaultdict()
+    d['domain'] = domain
+    d['users'] = {user : password}
+    d['api_key'] = api_key
+
+    print 'Your username:%s, and password: %s' % (user, password)
+
+    directory = os.path.expanduser('~') + '/.luckystrike'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    print 'Writing config to %sconfig.json' % directory
+
+    with open(directory + '/config.json', 'w') as config_file:
+        json.dump(d, config_file)
 
 def getManholeFactory(namespace, **passwords):
     realm = manhole_ssh.TerminalRealm()
@@ -36,6 +60,9 @@ def watchdog():
             log.msg('Last timestamp from %s is %s' % (room['channel'], room['heartbeat']))
 
 if __name__ == '__main__':
+    if config.args.setup_config:
+        setup_config()
+        sys.exit(0)
 
     log.startLogging(sys.stdout)
 
@@ -60,7 +87,7 @@ if __name__ == '__main__':
         reactor.listenTCP(int(config.configuration.get('port', 6667)), LuckyStrikeIRCFactory(config.irc_realm, irc_portal))
 
         if config.args.debug:
-            admin_password = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+            admin_password = util.generate_password()
             log.msg('Staring ManHole with admin password of: %s' % admin_password)
             reactor.listenTCP(int(config.configuration.get('manhole_port', 2222)), getManholeFactory(globals(), admin=admin_password), interface='127.0.0.1')
 

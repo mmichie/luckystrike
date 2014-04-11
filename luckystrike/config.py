@@ -19,7 +19,16 @@ else:
 users = configuration['users']
 
 parser = argparse.ArgumentParser(description='Campfire to IRC Proxy')
-parser.add_argument('-d', '--debug', action='store_true')
+parser.add_argument(
+        '-d', '--debug', 
+        action='store_true', 
+        help='increase debug level'
+)
+parser.add_argument(
+        '-s', '--setup_config', 
+        action='store_true', 
+        help='generate config.json'
+)
 args = parser.parse_args()
 
 # connect to Campfire

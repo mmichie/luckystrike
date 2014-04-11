@@ -1,9 +1,14 @@
 import config
-import traceback
+import random
 import re
+import string
 import sys
+import traceback
 
 from twisted.python import log
+
+def generate_password(length = 12):
+    return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(length))
 
 def campNameToString(name):
     return re.sub('\s+', '_', name).lower()
