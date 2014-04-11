@@ -27,6 +27,14 @@ Dependencies
   * [pyOpenSSL](https://github.com/pyca/pyopenssl)
   * [pyasn1](http://pyasn1.sourceforge.net/)
 
+
+Quick setup
+===========
+
+$ python setup.py install
+$ lstrike --setup_config
+$ lstrike
+
 SSL keys
 ========
 
