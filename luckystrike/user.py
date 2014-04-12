@@ -102,7 +102,6 @@ class LuckyStrikeIRCUser(service.IRCUser):
             log.msg('Starting to stream: %s' % room_info['name'])
             room = config.campfire.find_room_by_name(room_info['name'])
             room.join()
-            config.rooms[room.id]['streaming'] = True
 
             if config.rooms[room.id]['stream'] is None:
                 username, password = room._connector.get_credentials()
@@ -138,11 +137,10 @@ class LuckyStrikeIRCUser(service.IRCUser):
         room = config.campfire.find_room_by_name(room_info['name'])
         room.leave()
         try:
-            # This doesn't seem to do what we want yet, need to figure out how
-            # to actually cut off the stream
-            config.rooms[room.id]['stream'].pause()
-            config.rooms[room.id]['stream'].cancel()
-            config.rooms[room.id]['streaming'] = False
+            factory, connection = config.rooms[room.id]['stream']
+            factory.stopTrying()
+            connection.disconnect()
+            config.rooms[room.id]['stream'] = None
         except:
             log.err()
 

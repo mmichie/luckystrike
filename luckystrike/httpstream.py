@@ -137,6 +137,6 @@ def stream(reactor, url, consumer, username=None, password=None):
     tw.make_header(username, password, "GET", url)
 
     if url.scheme == "https":
-        return reactor.connectSSL(url.netloc, 443, tw, ssl.ClientContextFactory())
+        return (tw, reactor.connectSSL(url.netloc, 443, tw, ssl.ClientContextFactory()))
     else:
-        return reactor.connectTCP(url.netloc, 80, tw)
+        return (tw, reactor.connectTCP(url.netloc, 80, tw))
