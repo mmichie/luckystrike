@@ -14,9 +14,14 @@ def replace_usernames(room, message):
     users = {}
     replace = []
 
-    #consider caching this
-    for user in room._get()['room']['users']:
-        users[util.campNameToString(user['name'])] = user['name']
+    #consider caching this, but if we error out, just don't worry about
+    #replacing usernames
+    try:
+        for user in room._get()['room']['users']:
+            users[util.campNameToString(user['name'])] = user['name']
+    except:
+        log.err()
+        return message
 
     # find all words that match usernames
     for m in message.split():
