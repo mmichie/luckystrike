@@ -16,7 +16,7 @@ class MessageReceiver(httpstream.MessageReceiver):
         self.url = url
 
     def connectionMade(self):
-        log.msg('connected to %s' % self.url)
+        log.msg('started receiving messages from %s' % self.url)
 
     def connectionFailed(self, why):
         log.err('cannot connect to %s: %s' % (self.url, why))
