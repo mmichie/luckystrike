@@ -19,6 +19,9 @@ from luckystrike import config
 from luckystrike.user import LuckyStrikeIRCFactory
 
 def setup_config():
+    """
+    Easier walkthrough for user to setup .luckystrike/config
+    """
     print 'Please input domain, without tld, for example.com, input example'
     domain = raw_input('Domain: ')
     user = raw_input('IRC nickname: ')
@@ -42,6 +45,9 @@ def setup_config():
         json.dump(d, config_file)
 
 def getManholeFactory(namespace, **passwords):
+    """
+    Return a Manhole SSH factory for debug purposes
+    """
     realm = manhole_ssh.TerminalRealm()
 
     def getManhole(_):
@@ -55,6 +61,9 @@ def getManholeFactory(namespace, **passwords):
     return f
 
 def watchdog():
+    """
+    Track last message received per room, call periodically in a reactor loop
+    """
     for room in config.rooms.itervalues():
         if room['streaming']:
             log.msg('Last timestamp from %s is %s' % (room['channel'], room['heartbeat']))
