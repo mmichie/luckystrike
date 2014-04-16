@@ -25,7 +25,7 @@ def replace_usernames(room, message):
 
     # find all words that match usernames
     for m in message.split():
-        a = [(k, v) for (k, v) in users.iteritems() if m.strip(':') == k]
+        a = [(k, v) for (k, v) in users.iteritems() if re.sub(r'\W+', '', m) == k]
         for i in a:
             replace.append(i)
 
