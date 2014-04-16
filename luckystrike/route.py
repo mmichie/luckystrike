@@ -18,7 +18,9 @@ def write_join_message(user, channel):
         client.join('%s!campfire@luckystrike' % user, channel)
 
 def route_incoming_message(message):
-
+    """
+    Take incoming message from Campfire, sort by type and deliver to IRC
+    """
     if message['user_id'] is not None:
         user = config.campfire.user(message['user_id'])['user']
     else:
