@@ -49,7 +49,7 @@ def route_incoming_message(message):
         write_part_message(nick, channel, 'Left channel')
     elif message['type'] == 'PasteMessage':
         # Write first 5 lines of paste
-        write_message('Paste: https://%s.campfirenow.com/room/%s/paste/%s' % (config['domain'], message['room_id'], message['id']), util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
+        write_message('Paste: https://%s.campfirenow.com/room/%s/paste/%s' % (config.configuration['domain'], message['room_id'], message['id']), util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
         lines = message['body'].splitlines()
         for line in lines[:5]:
             write_message(line, util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
@@ -66,7 +66,7 @@ def route_incoming_message(message):
         if config.args.debug:
             log.msg('Timestamp received: %s' % message['created_at'])
     elif message['type'] == 'UploadMessage':
-        write_message('Uploaded: https://%s.campfirenow.com/room/%s/uploads/%s' % (config['domain'], message['room_id'], message['body']), util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
+        write_message('Uploaded: https://%s.campfirenow.com/room/%s/uploads/%s' % (config.configuration['domain'], message['room_id'], message['body']), util.campNameToString(user['name']), config.rooms[message['room_id']]['channel'])
         log.msg('UploadMessage: %s' % message['body'])
     elif message['type'] == 'TopicChangeMessage':
         log.msg('TopicChangeMessage: %s' % message['body'])
