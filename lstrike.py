@@ -27,7 +27,7 @@ def setup_config():
     user = raw_input('IRC nickname: ')
     password = util.generate_password()
     api_key = raw_input('Campfire API key: ')
-    
+
     d = defaultdict()
     d['domain'] = domain
     d['users'] = {user : password}
