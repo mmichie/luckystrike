@@ -11,6 +11,9 @@ from luckystrike import config
 from luckystrike import route
 
 def replace_usernames(room, message):
+    """
+    Search message for potential usernames, return message with expanded name
+    """
     users = {}
     replace = []
 
@@ -203,4 +206,3 @@ class LuckyStrikeIRCUser(service.IRCUser):
 
 class LuckyStrikeIRCFactory(service.IRCFactory):
     protocol = LuckyStrikeIRCUser
-

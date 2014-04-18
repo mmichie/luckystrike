@@ -10,6 +10,10 @@ import httpstream
 
 class MessageReceiver(httpstream.MessageReceiver):
 
+    """
+    Receive Message from stream and callback the provided method else errback
+    """
+
     def __init__(self, user_callback, user_errback, url):
         self.user_callback = user_callback
         self.user_errback = user_errback
@@ -29,7 +33,9 @@ class MessageReceiver(httpstream.MessageReceiver):
         d.callback(message)
 
 def listen(username, room_id, callback, errback):
-
+    """
+    Start Campfire live stream
+    """
     url = 'https://streaming.campfirenow.com/room/%s/live.json' % room_id
     stream = httpstream.stream(reactor, url, MessageReceiver(callback, errback, url), username=username, password='X')
 
