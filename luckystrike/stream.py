@@ -40,28 +40,3 @@ def listen(username, room_id, callback, errback):
     stream = httpstream.stream(reactor, url, MessageReceiver(callback, errback, url), username=username, password='X')
 
     return stream
-
-def success(x):
-    log.msg(x)
-
-def failure(x):
-    log.err(x)
-
-if __name__ == '__main__':
-    global campfire
-
-    log.startLogging(sys.stdout)
-
-    try:
-        config_file = open('../config.json')
-        config = dict(json.loads(config_file.read()))
-        users = config['users']
-
-        # connect to Campfire
-        campfire = pinder.Campfire(config['domain'], config['api_key'])
-        room = campfire.find_room_by_name('TCC')
-        room.join()
-        httpstream.stream(reactor, 'https://streaming.campfirenow.com/room/540835/live.json', MessageReceiver(success, failure), username=config['api_key'], password='X')
-        reactor.run()
-    except:
-        log.err()
