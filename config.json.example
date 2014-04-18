@@ -8,5 +8,6 @@
     "ssl_crt": "keys/server.crt",
     "port": 6667,
     "ssl_port": 6697,
-    "manhole_port": 2222
+    "manhole_port": 2222,
+    "pidfile": "/var/run/lstrike.pid"
 }

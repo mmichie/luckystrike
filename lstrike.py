@@ -27,7 +27,7 @@ def setup_config():
     user = raw_input('IRC nickname: ')
     password = util.generate_password()
     api_key = raw_input('Campfire API key: ')
-    
+
     d = defaultdict()
     d['domain'] = domain
     d['users'] = {user : password}
@@ -76,6 +76,11 @@ if __name__ == '__main__':
     log.startLogging(sys.stdout)
 
     try:
+        # Store pid file first thing
+        pidfile = config.configuration.get('pidfile', None)
+        if pidfile is not None:
+            with open(pidfile, 'w+') as pf:
+                pf.write("%s\n" % str(os.getpid()))
 
         for room in config.campfire.rooms():
             config.rooms[room['id']] = room
@@ -117,3 +122,6 @@ if __name__ == '__main__':
 
     except:
         log.err()
+    finally:
+        if pidfile is not None:
+            os.unlink(pidfile)
