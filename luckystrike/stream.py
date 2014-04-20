@@ -1,7 +1,3 @@
-import pinder
-import json
-import sys
-
 from twisted.internet import reactor
 from twisted.internet.defer import Deferred
 from twisted.python import log
