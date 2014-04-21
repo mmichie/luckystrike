@@ -129,6 +129,13 @@ class LuckyStrikeIRCUser(service.IRCUser):
         if params[0].startswith('#'):
             room = self.channelToRoom(params[0])
             message = replace_usernames(room, params[1])
+
+            # Handle /me
+            if message.startswith('\x01ACTION'):
+                before = message
+                message = '*' + ' '.join(message.split()[1:]) + '*'
+                log.msg('ACTION Translated from %s to %s' % (before, message))
+
             log.msg('Speaking to %s: %s' % (room.name, message.decode('ascii', 'ignore')))
             try:
                 room.speak(message)
