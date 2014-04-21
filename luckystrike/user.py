@@ -133,6 +133,7 @@ class LuckyStrikeIRCUser(service.IRCUser):
             # Handle /me
             if message.startswith('\x01ACTION'):
                 before = message
+                message = message.strip('\x01')
                 message = '*' + ' '.join(message.split()[1:]) + '*'
                 log.msg('ACTION Translated from %s to %s' % (before, message))
 
