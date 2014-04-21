@@ -8,14 +8,14 @@ import luckystrike
 setup(
     name='luckystrike',
     author='Matt Michie',
+    author_email='mmichie@gmail.com',
     maintainer_email='mmichie@gmail.com',
     version=luckystrike.version,
     url='https://github.com/mmichie/luckystrike',
-    download_url = 'https://github.com/mmichie/luckystrike/tarball/0.1',
+    download_url = 'https://github.com/mmichie/luckystrike/tarball/%s' % luckystrike.version,
     keywords = ['campfire', 'irc', 'bridge'],
     license='The MIT License (MIT)',
     description='IRC to Campfire Bridge',
-    long_description=open('README.md').read(),
     packages=['luckystrike'],
     scripts=['lstrike.py'],
     classifiers=[
