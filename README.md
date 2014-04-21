@@ -46,6 +46,11 @@ License
 
 MIT, see LICENSE for details.
 
+Contributors
+============
+  * Matt Michie
+  * Rob Smith
+
 Contributing
 ============
 

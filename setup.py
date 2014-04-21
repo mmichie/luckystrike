@@ -1,4 +1,8 @@
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
+
 import luckystrike
 
 setup(
@@ -7,6 +11,8 @@ setup(
     maintainer_email='mmichie@gmail.com',
     version=luckystrike.version,
     url='https://github.com/mmichie/luckystrike',
+    download_url = 'https://github.com/mmichie/luckystrike/tarball/0.1',
+    keywords = ['campfire', 'irc', 'bridge'],
     license='The MIT License (MIT)',
     description='IRC to Campfire Bridge',
     long_description=open('README.md').read(),
