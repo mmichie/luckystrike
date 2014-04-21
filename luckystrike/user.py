@@ -62,7 +62,7 @@ class LuckyStrikeIRCUser(service.IRCUser):
         config.irc_users[self.avatar.name] = self
 
     def channelToRoom(self, channel):
-        room_info = util.lookupChannel(channel.strip('#'))
+        room_info = util.channel_to_room(channel.strip('#'))
         room = config.campfire.find_room_by_name(room_info['name'])
 
         return room
@@ -99,7 +99,7 @@ class LuckyStrikeIRCUser(service.IRCUser):
 
     def irc_JOIN(self, prefix, params):
         for channel in params[0].split(','):
-            room_info = util.lookupChannel(channel.strip('#'))
+            room_info = util.channel_to_room(channel.strip('#'))
             group = config.irc_realm.groups[util.campNameToString(room_info['name'])]
             group.setMetadata({'topic': room_info['topic']})
 
@@ -140,7 +140,7 @@ class LuckyStrikeIRCUser(service.IRCUser):
         log.msg('Left channel: %s, %s' % (prefix, params))
 
         # Leave Campfire room
-        room_info = util.lookupChannel(params[0].strip('#'))
+        room_info = util.channel_to_room(params[0].strip('#'))
         log.msg('Stopping stream to : %s' % room_info['name'])
         room = config.campfire.find_room_by_name(room_info['name'])
         room.leave()

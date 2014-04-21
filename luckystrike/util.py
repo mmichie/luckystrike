@@ -19,7 +19,7 @@ def campNameToString(name):
     """
     return re.sub('\s+', '_', name).lower()
 
-def lookupChannel(channel):
+def channel_to_room(channel):
     """
     Given an IRC channel, return a Campfire room object
     """
