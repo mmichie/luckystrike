@@ -6,8 +6,14 @@ from twisted.python import log
 
 def write_message(message, user, channel):
     for user_name, client in config.irc_users.iteritems():
-        client.privmsg(user, '#%s' % channel, message)
-        log.msg('Writing to %s on %s: %s' % (user_name, channel, message.encode('ascii', 'ignore')))
+        #assume *messages* are ACTION and translate accordingly
+        if message.startswith('*') and message.endswith('*'):
+            # I don't get why client.action doesn't do this in Twisted - mim
+            client.privmsg(user, '#%s' % channel, '\x01ACTION %s\x01' % message.strip('*'))
+            log.msg('Translating action to %s on %s: %s' % (user_name, channel, message.encode('ascii', 'ignore')))
+        else:
+            client.privmsg(user, '#%s' % channel, message)
+            log.msg('Writing to %s on %s: %s' % (user_name, channel, message.encode('ascii', 'ignore')))
 
 def write_part_message(user, channel, reason=None):
     for user_name, client in config.irc_users.iteritems():
