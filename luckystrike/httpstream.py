@@ -61,7 +61,7 @@ class MessageReceiver(object):
 
 
 class HttpStreamProtocol(basic.LineReceiver):
-    delimiter = "\r"
+    delimiter = "\r\n"
 
     def __init__(self):
         self.in_header = True
@@ -90,7 +90,7 @@ class HttpStreamProtocol(basic.LineReceiver):
                 self.in_header = False
             break
         else:
-            #log.msg('!(%s): %s!' % (len(line), line))
+            self.delimiter = '\r'
             if '{' in line:
                 try:
                     message = _json.loads(unicode(line.strip(), 'UTF-8'))
