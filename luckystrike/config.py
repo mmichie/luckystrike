@@ -21,8 +21,8 @@ users = configuration['users']
 parser = argparse.ArgumentParser(description='Campfire to IRC Proxy')
 parser.add_argument(
         '-d', '--debug', 
-        action='store_true', 
-        help='increase debug level'
+        action='count', 
+        help='add debug logging, add multiple times to increase level'
 )
 parser.add_argument(
         '-s', '--setup_config', 
