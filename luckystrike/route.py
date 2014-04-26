@@ -37,8 +37,10 @@ def route_incoming_message(message):
     # Update last message seen
     config.rooms[message['room_id']]['heartbeat'] = datetime.utcnow()
 
-    # Don't write messages that I've sent, or that aren't Text
-    if message['type'] == 'TextMessage' and config.campfire.me()['id'] != message['user_id']:
+    if message['type'] == 'TextMessage':
+        # don't write self messages unless in debug mode
+        if config.campfire.me()['id'] == message['user_id'] and not config.args.debug:
+            return
         write_message(message['body'], util.campNameToString(user['name']),
                 config.rooms[message['room_id']]['channel'])
     elif message['type'] == 'EnterMessage':
