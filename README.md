@@ -1,5 +1,7 @@
+**This project is no longer in active, and is in archive mode.**
+================================================================
+
 LuckyStrike
-===========
 
 A Campfire to IRC bridge, in the spirit of [camper_van](https://github.com/zerowidth/camper_van),
 written in Python.
